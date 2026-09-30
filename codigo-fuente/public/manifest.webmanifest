@@ -1,0 +1,10 @@
+{
+  "id": "./", "name": "Tierras · Cuaderno de arcillas", "short_name": "Tierras",
+  "description": "Mapa MAGNA, tierras recogidas y pruebas de cocción.",
+  "start_url": "./", "scope": "./", "display": "standalone",
+  "background_color": "#fafbfc", "theme_color": "#fafbfc", "lang": "es",
+  "icons": [
+    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
