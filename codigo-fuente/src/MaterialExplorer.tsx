@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Compass, ExternalLink, FlaskConical, Layers, MapPin, Search, Satellite } from 'lucide-react';
 import { GOALS, MAP_RESOURCES, MATERIALS, matchingMaterials, type CeramicGoal, type MaterialGuide } from './lib/materials';
 import type { Geology, Point } from './lib/types';
+import type { MapSourceAction } from './lib/mapSources';
 
 export function CeramicIdeas({ lithology }: { lithology: string | null }) {
   const materials = matchingMaterials(lithology);
@@ -38,7 +39,7 @@ export default function MaterialExplorer({ point, geology, loading, onMap }: {
   point: Point | null;
   geology: Geology | null;
   loading: boolean;
-  onMap: (ortho?: boolean) => void;
+  onMap: (source?: MapSourceAction) => void;
 }) {
   const [goal, setGoal] = useState<CeramicGoal>('all');
   const [query, setQuery] = useState('');
@@ -88,7 +89,7 @@ export default function MaterialExplorer({ point, geology, loading, onMap }: {
         <span className="eyebrow">{resource.publisher}</span><h3>{resource.name}</h3>
         <p>{resource.useful}</p><p className="resource-limitation">{resource.limitation}</p>
         <div className="resource-links"><a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-button"><ExternalLink size={15} />{resource.link}</a>
-          {resource.id === 'pnoa' && <button className="text-button" onClick={() => onMap(true)}><Satellite size={16} />Ver ortofotos en Tierras</button>}</div>
+          {resource.id === 'bdmin' && <button className="text-button" onClick={() => onMap('bdmin')}><MapPin size={16} />Ver BDMIN en Tierras</button>}{resource.id === 'soilgrids' && <button className="text-button" onClick={() => onMap('soil')}><Layers size={16} />Ver SoilGrids en Tierras</button>}{resource.id === 'pnoa' && <button className="text-button" onClick={() => onMap('pnoa')}><Satellite size={16} />Ver ortofotos en Tierras</button>}</div>
       </article>)}</div>
     </section>
 

@@ -1,0 +1,56 @@
+.integrated-source-controls{border-top:1px solid var(--line);margin-top:12px;padding-top:4px}
+.layers-panel{max-height:calc(100% - 44px);overflow:auto;overscroll-behavior:contain}
+.layers-panel>.small-heading{position:sticky;top:-9px;background:#fff;z-index:1}
+.source-layer-settings{padding:0 0 8px 4px}
+.source-layer-settings>label{display:block;font-size:12px;font-weight:550;margin:6px 0 12px;line-height:1.5}
+.source-layer-settings select{display:block;font-size:13px;margin-top:5px;padding:9px 8px;min-height:42px}
+.source-layer-settings>.meta{font-size:11px;line-height:1.6;margin:10px 0}
+.source-query-status{font-size:12px;line-height:1.6;margin:9px 0;color:var(--muted)}
+.source-layer-settings>.text-button{font-size:12px}
+.bdmin-locations{border:1px solid var(--line);border-radius:6px;background:#f8faf9;padding:8px 10px}
+.bdmin-locations summary,.soil-legend summary{font-size:12px;font-weight:600;cursor:pointer;min-height:28px;line-height:1.8}
+.bdmin-locations>div{max-height:180px;overflow:auto}
+.bdmin-locations button{width:100%;display:flex;align-items:flex-start;gap:7px;border:0;border-top:1px solid var(--line);background:none;text-align:left;padding:11px 2px;font-size:12px}
+.bdmin-locations button svg{color:#247653;margin-top:3px}
+.bdmin-locations button b{font-size:12px;font-weight:600}
+.bdmin-locations button small{display:block;color:var(--muted);margin-top:3px;font-size:11px}
+.bdmin-locations .meta{font-size:11px;margin:8px 0 0}
+.soil-legend{border:1px solid var(--line);border-radius:6px;padding:8px 10px;background:#fff}
+.soil-legend p{font-size:11px;color:var(--muted);margin:6px 0 9px}
+.soil-legend>div{max-height:180px;overflow:auto;padding:6px 8px;background:#fff}
+.soil-legend img{display:block;max-width:100%;height:auto}
+.bdmin-marker-wrap{background:none;border:0}
+.bdmin-marker{display:block;border:2px solid #fff;background:#247653;width:16px;height:16px;border-radius:50%;margin:5px;box-shadow:0 0 0 1px #185d40,0 2px 5px #14261955}
+.bdmin-marker-wrap:focus-visible .bdmin-marker{outline:3px solid #527db5;outline-offset:3px}
+.bdmin-map-status{position:absolute;top:77px;left:24px;z-index:400;background:#fff;border:1px solid #d9e3dc;border-radius:6px;box-shadow:0 2px 8px #162a1815;display:flex;align-items:center;gap:7px;padding:7px 9px;font-size:11px;color:#315a44;max-width:calc(100% - 100px)}
+.bdmin-dot{width:8px;height:8px;border-radius:50%;background:#247653;flex-shrink:0}
+.bdmin-popup{min-width:170px;max-width:270px;color:var(--ink);overflow-wrap:anywhere;font-family:inherit}
+.bdmin-popup>small{color:#247653;font-size:10px;font-weight:650;letter-spacing:.07em}
+.bdmin-popup h3{font-size:19px;margin:9px 0 12px}
+.bdmin-popup p{font-size:12px;margin:8px 0;line-height:1.55}
+.bdmin-popup .bdmin-popup-note{font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin-top:12px}
+.bdmin-popup>.button{font-size:12px;padding:9px 12px;margin-top:6px;width:100%}
+.bdmin-popup>a{display:block;font-size:11px;margin-top:11px;color:#365a80}
+.soil-point-info{background:#f6f1e9;border:1px solid #e8dccd;border-radius:7px;margin:13px 0 8px;padding:10px 12px}
+.soil-point-info summary{font-size:12px;font-weight:650;cursor:pointer;line-height:1.6;min-height:26px}
+.soil-point-info .meta{font-size:12px;display:flex;align-items:center;gap:6px;margin:6px 0}
+.soil-estimates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:8px 0}
+.soil-estimates>div{display:flex;flex-direction:column;gap:5px;min-width:0}
+.soil-estimates span{font-size:11px;color:#796450}
+.soil-estimates b{font-size:16px;font-weight:700}
+.soil-estimates small{font-size:10px;line-height:1.6;color:#796450}
+.soil-estimates small span{white-space:nowrap;font-size:inherit;color:inherit}
+.soil-disclaimer{font-size:10px!important;line-height:1.6!important;margin:9px 0 0!important;color:#796450}
+.soil-query-error{font-size:11px;line-height:1.6;color:#98523a}
+.soil-query-error .text-button{font-size:11px;display:flex;padding-left:0}
+.soil-map-error{position:absolute;top:112px;left:24px;right:90px;z-index:450;background:#fff3e8;color:#935c30;border:1px solid #ebcbaa;border-radius:6px;padding:10px 12px;font-size:12px;line-height:1.5;max-width:440px}
+.point-panel{max-height:calc(100% - 115px);overflow:auto}
+@media(max-width:760px){
+ .layers-panel{max-height:calc(100% - 36px)}
+ .source-layer-settings select{font-size:16px}
+ .bdmin-map-status{top:71px;left:15px;font-size:10px;max-width:calc(100% - 86px)}
+ .soil-map-error{top:105px;left:14px;right:69px;font-size:11px}
+ .point-panel{max-height:calc(100% - 140px)}
+ .soil-estimates b{font-size:15px}
+ .bdmin-popup{max-width:235px}
+}

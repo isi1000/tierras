@@ -1,0 +1,51 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{
+  "type": "FeatureCollection",
+  "features": [
+    
+    {
+      "type": "Feature",
+      "id": "clay_15-30cm_mean",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          {
+            "type": "Point",
+            "coordinates": [-423119.98, 4724135.8]
+          }
+        ]
+      },
+      "properties": {
+        "pixel_value": 297,
+        "unit": "g/kg"
+      }}
+  ]}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,5 +1,5 @@
 // Comprobación de la web compilada en un subdirectorio equivalente a GitHub Pages.
-// MAGNA y Supabase se simulan aquí; no se crean cuentas ni se envían correos reales.
+// Los mapas y Supabase se simulan aquí; no se crean cuentas ni se envían correos reales.
 import http from 'node:http';
 import path from 'node:path';
 import os from 'node:os';
@@ -30,7 +30,7 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
 const browser = await chromium.launch({ args: ['--no-sandbox'] });
 const pageErrors = [], calls = [], boundaryErrors = [];
-async function fixtures(context, cloud = false) {
+async function fixtures(context, cloud = false, sourceState = {}) {
   context.on('page', page => {
     page.on('pageerror', error => pageErrors.push(String(error)));
     page.on('console', message => { if (message.type() === 'error' && message.text().startsWith('Tierras:')) { boundaryErrors.push(message.text()); console.error(message.text()); } });
@@ -42,7 +42,27 @@ async function fixtures(context, cloud = false) {
   });
   await context.route('**/mapas.igme.es/**', route => {
     const url = new URL(route.request().url());
+    if (url.pathname.includes('IGME_BDMIN_Explotaciones') && url.pathname.endsWith('/query')) {
+      calls.push({ source: 'bdmin', path: url.pathname, method: 'GET' });
+      if (sourceState.bdminError) return route.fulfill({ status: 503, body: 'Servicio no disponible' });
+      const item = (id, substance, x, y) => ({ attributes: { ESRI_OID: id, Codigo_roca: '1234567', Sustancia: substance, Municipio: 'Municipio de prueba', Provincia: 'Ciudad Real', Estado_Explotacion: 'Activo', Usos: 'Cerámica' }, geometry: { x, y } });
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ features: [item(101, 'Arcilla', -3.76, 39.018), item(104, 'Arcilla', -3.76, 39.018), item(102, 'Basalto', -3.78, 39.023), item(103, 'Caolín', -3.83, 39.03)] }) });
+    }
     if (url.pathname.endsWith('/query')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ features: [{ attributes: url.pathname.includes('/11/') ? { HOJA: 784, ID: 1, DLO: 'ARCILLAS Y MARGAS' } : { NUM: 784, NOMBRE: 'CIUDAD REAL' } }] }) });
+    return route.fulfill({ contentType: 'image/png', body: icon });
+  });
+  await context.route('**/maps.isric.org/**', route => {
+    const url = new URL(route.request().url()), params = url.searchParams;
+    const kind = params.get('REQUEST') || params.get('request'), layer = params.get('LAYERS') || params.get('layers');
+    calls.push({ source: 'soil', kind, layer, path: url.pathname, method: 'GET' });
+    if (kind === 'GetFeatureInfo') {
+      const property = url.pathname.split('/').at(-1);
+      const delta = layer.includes('_0-5cm_') ? 10 : 0;
+      const mean = { clay: 297, silt: 303, sand: 400 }[property] + delta;
+      const raw = layer.endsWith('_mean') ? mean : layer.endsWith('_Q0.05') ? (property === 'clay' ? 78 : 250) : (property === 'clay' ? 771 : 600);
+      return route.fulfill({ contentType: 'application/geo+json', body: JSON.stringify({ type: 'FeatureCollection', features: [{ type: 'Feature', id: layer, properties: { pixel_value: raw, unit: sourceState.soilErrorProperty === property ? 'unknown' : 'g/kg' } }] }) });
+    }
+    if (sourceState.soilTilesFail && kind === 'GetMap') return route.fulfill({ status: 503, body: 'Servicio no disponible' });
     return route.fulfill({ contentType: 'image/png', body: icon });
   });
   if (cloud) {
@@ -188,6 +208,86 @@ try {
   await page.locator('.mobile-nav').getByRole('button', { name: 'Explorar', exact: true }).click();
   assert.equal(await page.locator('.material-card').count(),6);
   await mobile.setOffline(false);
+  const sourceState = {};
+  const sourcesContext = await browser.newContext({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await fixtures(sourcesContext, false, sourceState);
+  const sourcePage = await sourcesContext.newPage(); await sourcePage.goto(base + '/tierras/');
+  await sourcePage.waitForFunction(() => document.querySelectorAll('.bdmin-marker-wrap').length === 3);
+  await sourcePage.getByRole('button', { name: 'Capas del mapa', exact: true }).click();
+  await sourcePage.getByLabel('Material de BDMIN', { exact: true }).selectOption('clay');
+  await sourcePage.waitForFunction(() => document.querySelectorAll('.bdmin-marker-wrap').length === 2);
+  await sourcePage.screenshot({ path: path.join(output, 'iphone-capas-bdmin.png') });
+  await sourcePage.locator('.bdmin-locations summary').click();
+  await sourcePage.locator('.bdmin-locations button').filter({ hasText: 'Arcilla' }).click();
+  await sourcePage.locator('.bdmin-popup h3').filter({ hasText: 'Arcilla' }).waitFor();
+  assert.equal(await sourcePage.locator('.layers-panel').count(), 0);
+  assert.match(await sourcePage.locator('.bdmin-popup').innerText(), /Cerámica/);
+  assert.match(await sourcePage.locator('.bdmin-popup-note').innerText(), /2 fichas/);
+  await sourcePage.waitForFunction(() => {
+    const popup = document.querySelector('.leaflet-popup'), map = document.querySelector('.map-canvas');
+    return popup && getComputedStyle(popup).opacity === '1' && popup.getBoundingClientRect().top >= map.getBoundingClientRect().top + 102;
+  });
+  await sourcePage.screenshot({ path: path.join(output, 'iphone-ficha-bdmin.png') });
+  await sourcePage.getByRole('button', { name: 'Consultar tierra aquí', exact: true }).click();
+  await sourcePage.getByRole('button', { name: 'Recogí tierra aquí', exact: true }).waitFor();
+  assert.equal(await sourcePage.locator('.soil-point-info').count(), 0);
+  await sourcePage.locator('.mobile-nav').getByRole('button', { name: 'Explorar', exact: true }).click();
+  await sourcePage.getByRole('button', { name: 'Ver SoilGrids en Tierras', exact: true }).click();
+  await sourcePage.locator('.soil-estimates').waitFor();
+  assert.match(await sourcePage.locator('.soil-estimates').innerText(), /29,7 %/);
+  assert.match(await sourcePage.locator('.soil-estimates').innerText(), /7,8–77,1 %/);
+  assert.equal(await sourcePage.locator('.soil-estimates small').count(), 1);
+  assert.match(await sourcePage.locator('.map-source').innerText(), /Arcilla · 15–30 cm/);
+  await sourcePage.screenshot({ path: path.join(output, 'iphone-suelo-punto.png') });
+  await sourcePage.getByRole('button', { name: 'Capas del mapa', exact: true }).click();
+  assert.equal(await sourcePage.getByRole('button', { name: /Litología MAGNA/ }).getAttribute('aria-pressed'), 'false');
+  assert.equal(await sourcePage.getByRole('button', { name: /Suelo · SoilGrids/ }).getAttribute('aria-pressed'), 'true');
+  await sourcePage.getByLabel('Profundidad del suelo', { exact: true }).selectOption('0-5cm');
+  await sourcePage.getByLabel('Fracción del suelo', { exact: true }).selectOption('sand');
+  await sourcePage.locator('.soil-legend summary').click();
+  await sourcePage.screenshot({ path: path.join(output, 'iphone-capas-soilgrids.png') });
+  await sourcePage.getByRole('button', { name: 'Cerrar capas', exact: true }).click();
+  await sourcePage.waitForFunction(() => document.querySelector('.soil-estimates')?.textContent.includes('30,7 %'));
+  assert.match(await sourcePage.locator('.soil-estimates').innerText(), /41 %/);
+  assert.match(await sourcePage.locator('.soil-estimates>div').nth(2).innerText(), /90 %: 25–60 %/);
+  assert.equal(await sourcePage.locator('.soil-estimates>div').first().locator('small').count(), 0);
+  assert.ok(calls.some(call => call.source === 'soil' && call.kind === 'GetFeatureInfo' && call.layer === 'sand_0-5cm_Q0.95'));
+  // Los errores deben quedar visibles y no reutilizar los porcentajes de otro punto o profundidad.
+  sourceState.soilErrorProperty = 'clay';
+  await sourcePage.getByRole('button', { name: 'Capas del mapa', exact: true }).click();
+  await sourcePage.getByLabel('Profundidad del suelo', { exact: true }).selectOption('30-60cm');
+  await sourcePage.getByRole('button', { name: 'Cerrar capas', exact: true }).click();
+  await sourcePage.getByText('Parte de SoilGrids no respondió. Puedes reintentar.', { exact: false }).waitFor();
+  assert.match(await sourcePage.locator('.soil-estimates>div').first().innerText(), /Sin datos/);
+  sourceState.soilErrorProperty = null;
+  await sourcePage.getByRole('button', { name: 'Reintentar SoilGrids', exact: true }).click();
+  await sourcePage.waitForFunction(() => document.querySelector('.soil-estimates')?.textContent.includes('29,7 %'));
+  assert.equal(await sourcePage.locator('.soil-query-error').count(), 0);
+  sourceState.soilTilesFail = true;
+  await sourcePage.getByRole('button', { name: 'Capas del mapa', exact: true }).click();
+  await sourcePage.getByLabel('Fracción del suelo', { exact: true }).selectOption('clay');
+  await sourcePage.locator('.soil-map-error').waitFor();
+  sourceState.soilTilesFail = false;
+  await sourcePage.getByLabel('Fracción del suelo', { exact: true }).selectOption('sand');
+  await sourcePage.waitForFunction(() => !document.querySelector('.soil-map-error'));
+  sourceState.bdminError = true;
+  await sourcePage.getByRole('button', { name: /Materias primas · BDMIN/ }).click();
+  await sourcePage.getByRole('button', { name: /Materias primas · BDMIN/ }).click();
+  await sourcePage.getByText('BDMIN no responde ahora. Puedes reintentar.', { exact: true }).waitFor();
+  assert.equal(await sourcePage.locator('.bdmin-marker-wrap').count(), 0);
+  sourceState.bdminError = false;
+  await sourcePage.getByRole('button', { name: 'Reintentar BDMIN', exact: true }).click();
+  await sourcePage.waitForFunction(() => document.querySelectorAll('.bdmin-marker-wrap').length === 2);
+  await sourcePage.getByRole('button', { name: /Litología MAGNA/ }).click();
+  assert.equal(await sourcePage.getByRole('button', { name: /Suelo · SoilGrids/ }).getAttribute('aria-pressed'), 'false');
+  assert.equal(await sourcePage.locator('.soil-point-info').count(), 0);
+  await sourcePage.setViewportSize({ width: 320, height: 700 });
+  assert.ok(await sourcePage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  assert.ok(await sourcePage.locator('.layers-panel').evaluate(el => el.getBoundingClientRect().bottom <= innerHeight - 40));
+  await sourcePage.screenshot({ path: path.join(output, 'movil-pequeno-capas.png') });
+  await sourcePage.getByRole('button', { name: 'Cerrar capas', exact: true }).click();
+  await sourcePage.locator('.mobile-nav button').nth(1).click();
+  assert.equal(await sourcePage.locator('.sample-item').count(), 0);
   const second = await browser.newContext({ viewport: { width: 1280, height: 800 } }); await fixtures(second);
   const restored = await second.newPage(); await restored.goto(base + '/tierras/');
   dialog = await openTools(restored); await dialog.locator('input[type=file]').setInputFiles(backupFile);
@@ -223,8 +323,14 @@ try {
   assert.ok(calls.some(call => call.path === '/rest/v1/tierras_samples' && call.method === 'PATCH'));
   assert.equal(pageErrors.length,0,JSON.stringify(pageErrors));
   assert.equal(boundaryErrors.length,0,JSON.stringify(boundaryErrors));
-  console.log('Navegador: explorar materiales, filtros, búsqueda, ideas por litología, ortofotos, móvil y tableta, rutas de subcarpeta, muestras, cocciones, fotos, notas, copias, aislamiento local, modo sin conexión, configuración inválida y conexión Supabase comprobados.');
+  console.log('Navegador: BDMIN, filtros y fichas; SoilGrids, fracciones, profundidades, porcentajes, intervalos y errores; explorar, ortofotos, móvil, muestras, fotos, notas, copias, aislamiento, modo sin conexión y Supabase comprobados.');
   await writeFile(path.join(output,'result.json'),JSON.stringify({status:'passed',pageErrors,cloudRequests:calls.length},null,2));
+} catch (error) {
+  for (const [index, context] of browser.contexts().entries()) {
+    const page = context.pages().at(-1);
+    if (page) await page.screenshot({ path: path.join(output, `fallo-${index}.png`) }).catch(() => {});
+  }
+  throw error;
 } finally {
   await browser.close(); server.close();
 }

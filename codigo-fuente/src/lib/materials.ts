@@ -97,13 +97,13 @@ export const MAP_RESOURCES = [
   {
     id: 'bdmin', name: 'Recursos minerales · BDMIN', publisher: 'IGME-CSIC',
     useful: 'Indicios y explotaciones de arcilla, caolín, feldespato y otras materias primas. Es el primer complemento que consultaría para decidir una zona.',
-    limitation: 'Es un inventario geológico y minero. Comprueba la localización, la actualidad de la ficha y el permiso de acceso y recogida.',
+    limitation: 'Integrado en Tierras con puntos, filtros por materia prima y consulta de fichas. Comprueba la localización, la actualidad y el permiso de acceso y recogida.',
     url: 'https://info.igme.es/BDmin/', link: 'Abrir BDMIN',
   },
   {
     id: 'soilgrids', name: 'Proporción de arcilla · SoilGrids', publisher: 'ISRIC',
     useful: 'Estimaciones de arcilla, limo y arena a distintas profundidades. Ayuda a comparar zonas con suelo más fino.',
-    limitation: 'Resolución de 250 m, con incertidumbre. No identifica minerales de arcilla ni garantiza plasticidad. Su API REST está temporalmente pausada; consulta el visor desde su página.',
+    limitation: 'Integrado en Tierras mediante su servicio cartográfico: capas por profundidad y estimaciones por punto. Resolución de 250 m; no identifica minerales ni garantiza plasticidad.',
     url: 'https://isric.org/explore/soilgrids', link: 'Abrir SoilGrids',
   },
   {

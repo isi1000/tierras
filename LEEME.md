@@ -1,6 +1,6 @@
 # Tierras · Cuaderno de arcillas
 
-Web instalable para consultar la litología MAGNA, explorar materiales de interés cerámico, registrar tierras recogidas y seguir sus pruebas de cocción. Esta versión funciona en GitHub Pages y no necesita una cuenta de ChatGPT.
+Web instalable para consultar MAGNA, las materias primas de BDMIN y el suelo estimado de SoilGrids, explorar materiales de interés cerámico, registrar tierras recogidas y seguir sus pruebas de cocción. Esta versión funciona en GitHub Pages y no necesita una cuenta de ChatGPT.
 
 ## 1. Subirla a GitHub Pages
 
@@ -31,7 +31,7 @@ Si ya publicaste la versión anterior, sustituye los archivos de la web y sus ca
 | Notas, muestras y fotos | Guardadas en IndexedDB, en el dispositivo | Guardadas en la base de datos y el almacenamiento privado |
 | Otro móvil u ordenador | Exportar e importar una copia | Entrar con la misma cuenta y actualizar el cuaderno |
 | Sin conexión | Fichas, notas, cocciones y fotos, tras abrir la app con conexión una vez | La carga y el guardado necesitan conexión |
-| Mapa y consultas MAGNA | Necesitan conexión | Necesitan conexión |
+| Mapas y consultas MAGNA, BDMIN y SoilGrids | Necesitan conexión | Necesitan conexión |
 
 **El modo local no equivale a una cuenta privada.** Quien use el mismo navegador del mismo dispositivo podrá abrir ese cuaderno. En dispositivos distintos, los cuadernos están separados. Si borras los datos del navegador o de la app, puedes perder el cuaderno local: exporta copias regularmente.
 
@@ -102,16 +102,29 @@ No se necesita App Store. En Android se puede instalar desde el menú de Chrome.
 
 Las fotografías se reducen a un máximo de 1600 píxeles y se guardan en JPEG. Se admiten hasta 60 fotografías y 500 cocciones por muestra. Si un navegador no puede abrir un archivo HEIC, conviértelo a JPEG antes de añadirlo.
 
-### Mapas complementarios y guía de materiales
+### BDMIN y SoilGrids dentro del mapa
 
-En **Explorar → Mapas que complementan MAGNA** hay enlaces a:
+En **Capas** puedes activar ambas fuentes. **Explorar** tiene botones **Ver BDMIN en Tierras** y **Ver SoilGrids en Tierras** para abrirlas directamente.
 
-- **BDMIN, IGME-CSIC:** indicios y explotaciones de materias primas. Busca arcilla, caolín, feldespato y otros materiales de interés. Comprueba la localización, la actualidad y el acceso en cada ficha; no es una lista de lugares autorizados para recoger.
-- **SoilGrids, ISRIC:** proporciones estimadas de arcilla, limo y arena a distintas profundidades. Sus píxeles de 250 m y su incertidumbre no permiten identificar una arcilla cerámica concreta. Se enlaza la página del visor: su API REST está temporalmente pausada según ISRIC en la consulta del 30 de septiembre de 2026.
-- **Atlas Geoquímico, visor IGME:** elementos en suelos y sedimentos para comparar zonas. Selecciona la capa y su tipo de muestra. Un valor regional no equivale al análisis químico de la tierra recogida.
-- **Iberpix, IGN / CNIG:** ortofotos y topografía. Las ortofotos también se pueden activar dentro de Tierras; baja la opacidad de MAGNA para ver el terreno.
+**BDMIN · IGME-CSIC** muestra círculos verdes con las ubicaciones de indicios y explotaciones de materias primas. Están activados al comenzar y se distinguen de los pines de tus muestras. El mapa consulta automáticamente la zona visible cuando te desplazas, a partir del nivel de zoom 8. El filtro permite elegir arcillas y caolines, feldespatos, materiales volcánicos, ocres, carbonatos o sílice, además de todas las materias primas.
 
-BDMIN, SoilGrids y el Atlas se abren como visores externos. Esta versión no descarga sus datos ni calcula rankings de lugares, recetas de esmalte, temperatura de maduración o aptitud alimentaria. Las ortofotos y las consultas de MAGNA necesitan internet; la guía de materiales está incluida en la app y se puede leer sin conexión después de la primera carga.
+Toca un círculo o abre **Ver ubicaciones** para consultar material, municipio, provincia, uso registrado, estado en el inventario y código de referencia, cuando constan en la fuente. Las fichas coincidentes con el mismo material, lugar, uso y estado se agrupan en un punto y se indica su número. **Consultar tierra aquí** selecciona esa ubicación, consulta MAGNA y permite crear una muestra cuando hayas recogido tierra. El inventario puede contener localizaciones aproximadas y datos históricos: confirma la ficha, el acceso y el permiso de recogida. El estado registrado no equivale al estado actual de una explotación.
+
+Cada consulta recupera hasta 1500 fichas. Si hay más o el servicio repite una página, aparece un aviso para acercar el mapa. La lista muestra las primeras 30 ubicaciones filtradas; los círculos del mapa representan todas las recuperadas. Un fallo muestra un error y un botón para reintentar; no se interpreta como una zona sin materias primas.
+
+**SoilGrids · ISRIC** ofrece capas de **arcilla, limo y arena**, a seis profundidades: 0–5, 5–15, 15–30, 30–60, 60–100 y 100–200 cm. Comienza en arcilla a 15–30 cm; puedes cambiar la fracción, la profundidad y la opacidad. MAGNA y SoilGrids se muestran por separado para distinguir sus colores. BDMIN puede aparecer sobre ambas capas y puedes conservar OpenStreetMap o PNOA como base.
+
+Con SoilGrids activo, toca cualquier punto para ver los porcentajes medios estimados de las tres fracciones a la profundidad elegida. La fracción seleccionada incluye además los cuantiles del 5 % y del 95 %, que delimitan el intervalo de predicción del 90 %. Las consultas de cada estadístico se hacen por separado para evitar mezclar los valores que devuelve el servicio. Los datos originales están en g/kg y se dividen entre 10 para mostrarlos en porcentaje: 297 g/kg = 29,7 %. La leyenda de colores conserva sus unidades originales.
+
+Son **estimaciones de tamaños de grano**, con píxeles de 250 m. La fracción arcilla no es un porcentaje de minerales arcillosos ni un ensayo de plasticidad, y no permite deducir una receta de esmalte o una temperatura de maduración. «Sin datos» conserva la ausencia de un valor; un fallo de consulta se indica aparte y permite reintentar. Los valores se consultan en el mapa y no se guardan automáticamente en la ficha de muestra: puedes anotarlos en tus notas con su profundidad y fuente.
+
+Esta integración utiliza el **servicio WMS de ISRIC**, comprobado el 30 de septiembre de 2026. No depende de la API REST beta, que ISRIC indica como pausada en esa fecha. La atribución SoilGrids y su licencia CC BY 4.0 aparecen en el mapa.
+
+### Otros mapas y guía de materiales
+
+En **Explorar → Mapas que complementan MAGNA** también hay enlaces al **Atlas Geoquímico del IGME** y a **Iberpix del IGN / CNIG**. El Atlas permite comparar elementos en suelos y sedimentos; un valor regional no equivale al análisis químico de tu muestra. Las ortofotos PNOA de Iberpix también se pueden activar directamente como base del mapa de Tierras.
+
+Los mapas, las capas y las consultas necesitan internet. La guía de materiales está incluida en la app y se puede leer sin conexión después de la primera carga. No se calculan rankings de lugares, recetas de esmalte ni aptitud alimentaria a partir de estas fuentes.
 
 Las ideas cubren arcillas, ocres, rocas volcánicas, feldespatos, caolín y carbonatos. Cada tarjeta incluye dónde mirar, posibles usos, una prueba, una limitación y una fuente. Registra las mezclas en las notas y los resultados en las cocciones. Usa pequeñas probetas y una bandeja recolectora con materiales que puedan fundir; la temperatura, la atmósfera, el soporte y la preparación influyen en el resultado.
 
@@ -145,7 +158,7 @@ npm run build
 
 El resultado aparece en **`codigo-fuente/dist`**. Copia su contenido a la raíz del repositorio de GitHub Pages, sustituyendo la web anterior. Conserva tu `config.js` con la configuración real, o actualiza antes `codigo-fuente/public/config.js` para que la compilación lo incluya. El script genera automáticamente el service worker con los nombres reales de los archivos.
 
-Para ejecutar las comprobaciones de almacenamiento y políticas:
+Para ejecutar las comprobaciones de almacenamiento, políticas y respuestas cartográficas:
 
 ```bash
 npm test
@@ -153,7 +166,7 @@ npm test
 
 Las pruebas de las políticas usan PostgreSQL mediante PGlite, con cuentas y esquemas de prueba. No se conectan a un proyecto Supabase real ni envían correos.
 
-Se han comprobado la compilación, el guardado local con fotos, la restauración de copias, las reglas por usuario en PostgreSQL y la interfaz en Chromium con tamaño de móvil. La sección Explorar, sus filtros y búsqueda, las ideas por punto y la selección de ortofotos se han comprobado en navegador. También se ha verificado una consulta real a MAGNA con el origen de GitHub Pages y el servicio de imágenes PNOA. La conexión del cliente Supabase se ha probado con respuestas simuladas; el registro, la confirmación de correo y la recuperación requieren verificar tu proyecto configurado. No se ha probado físicamente en un iPhone.
+Se han comprobado la compilación, el guardado local con fotos, la restauración de copias, las reglas por usuario en PostgreSQL y la interfaz en Chromium con tamaños de móvil y escritorio. Las pruebas incluyen BDMIN (filtros, fichas, agrupación y errores) y SoilGrids (capas, profundidad, porcentajes, intervalos y reintentos). Se han verificado respuestas reales de BDMIN y SoilGrids con CORS para uso desde GitHub Pages, además de la conversión de unidades de SoilGrids con valores reales de su WMS. La sección Explorar, sus filtros y búsqueda, las ideas por punto y la selección de ortofotos se han comprobado en navegador. También se ha verificado una consulta real a MAGNA con el origen de GitHub Pages y el servicio de imágenes PNOA. La conexión del cliente Supabase se ha probado con respuestas simuladas; el registro, la confirmación de correo y la recuperación requieren verificar tu proyecto configurado. No se ha probado físicamente en un iPhone.
 
 Para repetir las comprobaciones del navegador, instala Chromium con `npx playwright install chromium` y ejecuta `npm run test:browser`. Los mapas y el servicio Supabase de esa prueba se simulan con datos de prueba.
 
@@ -164,6 +177,8 @@ Para repetir las comprobaciones del navegador, instala Chromium con `npx playwri
 - **No llega la confirmación de cuenta:** revisa Custom SMTP, sus límites y Authentication Logs. El servicio de prueba de Supabase restringe los destinatarios.
 - **No se guardan datos en la nube:** confirma que ejecutaste `supabase.sql`, que la clave es publicable y que el proyecto está activo. La app muestra el error; no cambia silenciosamente al cuaderno local.
 - **No carga MAGNA:** la cartografía depende del servicio IGME-CSIC. Puedes conservar el punto y consultar su litología más tarde. No se cachean mapas para uso sin conexión.
+- **No aparecen puntos BDMIN:** activa la capa, revisa el filtro y acerca el mapa. Si aparece un error del servicio, usa **Reintentar BDMIN**. Una ubicación del inventario puede no corresponder a un lugar accesible hoy.
+- **No carga SoilGrids:** la capa y los valores dependen del servicio ISRIC. Reintenta la consulta o vuelve a MAGNA desde Capas; tu cuaderno sigue disponible. Las áreas sin predicción aparecen como «Sin datos».
 - **No cargan las ortofotos:** abre Capas y cambia el mapa base a OpenStreetMap. Las imágenes dependen del servicio del IGN.
 - **No aparecen fotos tras mucho tiempo con la página abierta:** usa **Cuaderno → Actualizar cuaderno**.
 - **Se agotó el espacio local:** exporta una copia y libera almacenamiento en el dispositivo. Borrar los datos de la app sin copia puede eliminar tus muestras.
@@ -180,6 +195,8 @@ Para repetir las comprobaciones del navegador, instala Chromium con `npx playwri
 - [IGME-CSIC: recursos minerales BDMIN](https://info.igme.es/BDmin/)
 - [IGME-CSIC: visor geocientífico](https://info.igme.es/visor/)
 - [ISRIC: SoilGrids y estado de su API](https://isric.org/explore/soilgrids)
+- [ISRIC: servicios WMS de SoilGrids](https://docs.isric.org/globaldata/soilgrids/wms_from_qgis_arcmap.html)
+- [ISRIC: unidades, profundidades e incertidumbre](https://docs.isric.org/globaldata/soilgrids/SoilGrids_faqs_02.html)
 - [IGN / CNIG: visores y servicios PNOA](https://pnoa.ign.es/pnoa-imagen/visualizadores-y-servicios-web)
 - [Matt Fishman: uso y ensayo de tierras y esmaltes locales](https://ceramicartsnetwork.org/ceramics-monthly/ceramics-monthly-article/wild-clay-and-glaze)
 - [Linda Bloomfield: geología para ceramistas](https://ceramicartsnetwork.org/ceramics-monthly/ceramics-monthly-article/Technofile-Geology-for-Potters)
