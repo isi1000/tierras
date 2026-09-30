@@ -1,6 +1,6 @@
 # Tierras · Cuaderno de arcillas
 
-Web instalable para consultar la litología MAGNA, registrar tierras recogidas y seguir sus pruebas de cocción. Esta versión funciona en GitHub Pages y no necesita una cuenta de ChatGPT.
+Web instalable para consultar la litología MAGNA, explorar materiales de interés cerámico, registrar tierras recogidas y seguir sus pruebas de cocción. Esta versión funciona en GitHub Pages y no necesita una cuenta de ChatGPT.
 
 ## 1. Subirla a GitHub Pages
 
@@ -18,6 +18,8 @@ La web ya está compilada. Para publicarla **no necesitas instalar Node ni ejecu
 Ejemplo: con el usuario `isi1000` y el repositorio `tierras`, la dirección sería `https://isi1000.github.io/tierras/`. Usa siempre la dirección que GitHub te indique, incluida la barra final. Las rutas de la app son relativas y también admiten otro nombre de repositorio o un dominio propio.
 
 Al subir estos archivos, la app empieza en **modo local**.
+
+Si ya publicaste la versión anterior, sustituye los archivos de la web y sus carpetas con los de este ZIP. **Conserva tu `config.js` si ya configuraste Supabase**, y mantén la misma dirección de la app. Esta actualización no cambia el formato del cuaderno. Exporta una copia antes de actualizar y cierra y vuelve a abrir la app para cargar la versión nueva.
 
 ## 2. Elegir cómo se guardan los cuadernos
 
@@ -89,7 +91,9 @@ No se necesita App Store. En Android se puede instalar desde el menú de Chrome.
 
 ## 5. Usar el cuaderno
 
-- Toca el mapa para consultar la unidad geológica. En **Capas** puedes activar MAGNA y ajustar su transparencia.
+- Toca el mapa para consultar la unidad geológica. En **Capas** puedes activar MAGNA, ajustar su opacidad y cambiar el mapa base entre OpenStreetMap y **ortofotos PNOA del IGN / CNIG**.
+- Abre **Explorar** para ver **Dónde buscar**: seis familias de materiales, filtros de pastas, engobes, esmaltes y texturas, un buscador y una primera prueba orientativa para cada material.
+- Si has seleccionado un punto, **Qué probar con esta tierra** abre ideas relacionadas con palabras de su litología. Las fichas de muestra también incluyen **Ideas para probar**. Una coincidencia es una pista de la unidad, no la identificación de los minerales de tu muestra.
 - Usa el botón de ubicación o selecciona el punto de recogida y pulsa **Recogí tierra aquí**.
 - Guarda la muestra con nombre, fecha, descripción en crudo y notas.
 - En su ficha añade fotos en crudo y distintas pruebas de cocción, cada una con temperatura, atmósfera, resultado, fotos y notas.
@@ -97,6 +101,19 @@ No se necesita App Store. En Android se puede instalar desde el menú de Chrome.
 - En **Cuaderno → Actualizar cuaderno** puedes cargar los cambios de otro dispositivo y renovar el acceso a las fotografías.
 
 Las fotografías se reducen a un máximo de 1600 píxeles y se guardan en JPEG. Se admiten hasta 60 fotografías y 500 cocciones por muestra. Si un navegador no puede abrir un archivo HEIC, conviértelo a JPEG antes de añadirlo.
+
+### Mapas complementarios y guía de materiales
+
+En **Explorar → Mapas que complementan MAGNA** hay enlaces a:
+
+- **BDMIN, IGME-CSIC:** indicios y explotaciones de materias primas. Busca arcilla, caolín, feldespato y otros materiales de interés. Comprueba la localización, la actualidad y el acceso en cada ficha; no es una lista de lugares autorizados para recoger.
+- **SoilGrids, ISRIC:** proporciones estimadas de arcilla, limo y arena a distintas profundidades. Sus píxeles de 250 m y su incertidumbre no permiten identificar una arcilla cerámica concreta. Se enlaza la página del visor: su API REST está temporalmente pausada según ISRIC en la consulta del 30 de septiembre de 2026.
+- **Atlas Geoquímico, visor IGME:** elementos en suelos y sedimentos para comparar zonas. Selecciona la capa y su tipo de muestra. Un valor regional no equivale al análisis químico de la tierra recogida.
+- **Iberpix, IGN / CNIG:** ortofotos y topografía. Las ortofotos también se pueden activar dentro de Tierras; baja la opacidad de MAGNA para ver el terreno.
+
+BDMIN, SoilGrids y el Atlas se abren como visores externos. Esta versión no descarga sus datos ni calcula rankings de lugares, recetas de esmalte, temperatura de maduración o aptitud alimentaria. Las ortofotos y las consultas de MAGNA necesitan internet; la guía de materiales está incluida en la app y se puede leer sin conexión después de la primera carga.
+
+Las ideas cubren arcillas, ocres, rocas volcánicas, feldespatos, caolín y carbonatos. Cada tarjeta incluye dónde mirar, posibles usos, una prueba, una limitación y una fuente. Registra las mezclas en las notas y los resultados en las cocciones. Usa pequeñas probetas y una bandeja recolectora con materiales que puedan fundir; la temperatura, la atmósfera, el soporte y la preparación influyen en el resultado.
 
 ## 6. Copias de seguridad
 
@@ -136,7 +153,7 @@ npm test
 
 Las pruebas de las políticas usan PostgreSQL mediante PGlite, con cuentas y esquemas de prueba. No se conectan a un proyecto Supabase real ni envían correos.
 
-Se han comprobado la compilación, el guardado local con fotos, la restauración de copias, las reglas por usuario en PostgreSQL y la interfaz en Chromium con tamaño de móvil. También se ha verificado una consulta real a MAGNA con el origen de GitHub Pages. La conexión del cliente Supabase se ha probado con respuestas simuladas; el registro, la confirmación de correo y la recuperación requieren verificar tu proyecto configurado. No se ha probado físicamente en un iPhone.
+Se han comprobado la compilación, el guardado local con fotos, la restauración de copias, las reglas por usuario en PostgreSQL y la interfaz en Chromium con tamaño de móvil. La sección Explorar, sus filtros y búsqueda, las ideas por punto y la selección de ortofotos se han comprobado en navegador. También se ha verificado una consulta real a MAGNA con el origen de GitHub Pages y el servicio de imágenes PNOA. La conexión del cliente Supabase se ha probado con respuestas simuladas; el registro, la confirmación de correo y la recuperación requieren verificar tu proyecto configurado. No se ha probado físicamente en un iPhone.
 
 Para repetir las comprobaciones del navegador, instala Chromium con `npx playwright install chromium` y ejecuta `npm run test:browser`. Los mapas y el servicio Supabase de esa prueba se simulan con datos de prueba.
 
@@ -147,6 +164,7 @@ Para repetir las comprobaciones del navegador, instala Chromium con `npx playwri
 - **No llega la confirmación de cuenta:** revisa Custom SMTP, sus límites y Authentication Logs. El servicio de prueba de Supabase restringe los destinatarios.
 - **No se guardan datos en la nube:** confirma que ejecutaste `supabase.sql`, que la clave es publicable y que el proyecto está activo. La app muestra el error; no cambia silenciosamente al cuaderno local.
 - **No carga MAGNA:** la cartografía depende del servicio IGME-CSIC. Puedes conservar el punto y consultar su litología más tarde. No se cachean mapas para uso sin conexión.
+- **No cargan las ortofotos:** abre Capas y cambia el mapa base a OpenStreetMap. Las imágenes dependen del servicio del IGN.
 - **No aparecen fotos tras mucho tiempo con la página abierta:** usa **Cuaderno → Actualizar cuaderno**.
 - **Se agotó el espacio local:** exporta una copia y libera almacenamiento en el dispositivo. Borrar los datos de la app sin copia puede eliminar tus muestras.
 
@@ -159,3 +177,12 @@ Para repetir las comprobaciones del navegador, instala Chromium con `npx playwri
 - [Supabase: claves publicables](https://supabase.com/docs/guides/getting-started/api-keys)
 - [Apple: instalar una app web desde Safari](https://support.apple.com/es-es/guide/iphone/iphea86e5236/ios)
 - [IGME-CSIC: cartografía MAGNA](https://info.igme.es/cartografiadigital/geologica/Magna50.aspx)
+- [IGME-CSIC: recursos minerales BDMIN](https://info.igme.es/BDmin/)
+- [IGME-CSIC: visor geocientífico](https://info.igme.es/visor/)
+- [ISRIC: SoilGrids y estado de su API](https://isric.org/explore/soilgrids)
+- [IGN / CNIG: visores y servicios PNOA](https://pnoa.ign.es/pnoa-imagen/visualizadores-y-servicios-web)
+- [Matt Fishman: uso y ensayo de tierras y esmaltes locales](https://ceramicartsnetwork.org/ceramics-monthly/ceramics-monthly-article/wild-clay-and-glaze)
+- [Linda Bloomfield: geología para ceramistas](https://ceramicartsnetwork.org/ceramics-monthly/ceramics-monthly-article/Technofile-Geology-for-Potters)
+- [Antoinette Badenhorst: ensayos de porcelana y caolines](https://ceramicartsnetwork.org/ceramics-monthly/ceramics-monthly-article/Translucent-Porcelain-131594)
+- [Ceramic Arts Network: funciones de materias primas](https://ceramicartsnetwork.org/daily/article/understanding-clay-and-glaze-materials-you-dont-have-to-be-a-super-genius/)
+- [Estudio: basalto como colorante de esmaltes](https://www.rsd.tfbor.bg.ac.rs/index.php/home/article/view/95)
