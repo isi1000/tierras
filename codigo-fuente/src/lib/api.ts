@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { CloudRepository } from './cloud';
 import { LocalRepository } from './local';
 import { appBase, notebookMode } from './config';
-import { makeSample, idSchema } from './schema';
+import { makeSample, makeVisit, idSchema } from './schema';
 import type { Photo, Repository } from './schema';
 export { notebookMode } from './config';
 const repository: Repository = notebookMode === 'local'
@@ -24,6 +24,7 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
     if (url === '/api/samples' && method === 'GET') return await repository.list() as T;
     const payload = typeof init?.body === 'string' ? JSON.parse(init.body) as unknown : undefined;
     if (url === '/api/samples' && method === 'POST') return await repository.create(makeSample(payload)) as T;
+    if (url === '/api/visits' && method === 'POST') return await repository.create(makeVisit(payload)) as T;
     if (url === '/api/photos' && method === 'POST' && init?.body instanceof FormData) {
       const form = init.body, file = form.get('file');
       if (!(file instanceof Blob)) throw new Error('Selecciona una fotografía.');
@@ -31,7 +32,7 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
       const firingId = rawFiring ? idSchema.parse(rawFiring) : null;
       return await repository.upload(sampleId, firingId, file, String(form.get('caption') || '')) as T;
     }
-    const match = /^\/api\/samples\/([^/]+)(?:\/(.*))?$/.exec(url);
+    const match = /^\/api\/(?:samples|visits)\/([^/]+)(?:\/(.*))?$/.exec(url);
     if (!match) throw new Error('Operación no disponible.');
     const id = idSchema.parse(match[1]), route = match[2] ? match[2].split('/') : [];
     const sample = await repository.mutate(id, route, method, payload);

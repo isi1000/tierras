@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { cleanSample, idSchema, sampleSchema, validateImage, type Backup } from './schema';
+import { cleanSample, idSchema, sampleSchema, visitSchema, validateImage, type Backup } from './schema';
 
 export async function encodeBlob(blob: Blob): Promise<string> {
   const data = new Uint8Array(await blob.arrayBuffer());
@@ -8,13 +8,14 @@ export async function encodeBlob(blob: Blob): Promise<string> {
   return `data:${blob.type};base64,${btoa(binary)}`;
 }
 export async function decodeBackup(value: unknown): Promise<{ backup: Backup; blobs: Map<string, Blob> }> {
-  const backup = z.object({ app: z.literal('Tierras'), version: z.literal(1), exportedAt: z.string().datetime(),
-    samples: z.array(sampleSchema).max(10000),
+  const backup = z.object({ app: z.literal('Tierras'), version: z.union([z.literal(1), z.literal(2)]), exportedAt: z.string().datetime(),
+    samples: z.array(sampleSchema).max(10000), visits: z.array(visitSchema).max(10000).default([]),
     photos: z.array(z.object({ id: idSchema, dataUrl: z.string().max(12 * 1024 * 1024) })).max(100000) }).parse(value);
-  const sampleIds = new Set(backup.samples.map(s => s.id));
+  const records = [...backup.samples, ...backup.visits];
+  const sampleIds = new Set(records.map(s => s.id));
   const referenced = backup.samples.flatMap(s => s.photos.map(p => p.id));
   const photoIds = new Set(backup.photos.map(p => p.id));
-  if (sampleIds.size !== backup.samples.length || new Set(referenced).size !== referenced.length || photoIds.size !== backup.photos.length ||
+  if (sampleIds.size !== records.length || new Set(referenced).size !== referenced.length || photoIds.size !== backup.photos.length ||
       referenced.length !== photoIds.size || referenced.some(id => !photoIds.has(id))) throw new Error('La copia está incompleta o contiene fotos duplicadas.');
   const blobs = new Map<string, Blob>();
   for (const photo of backup.photos) {
@@ -25,5 +26,5 @@ export async function decodeBackup(value: unknown): Promise<{ backup: Backup; bl
     await validateImage(blob);
     blobs.set(photo.id, blob);
   }
-  return { backup: { ...backup, samples: backup.samples.map(cleanSample) }, blobs };
+  return { backup: { ...backup, version: 2, samples: backup.samples.map(cleanSample) }, blobs };
 }

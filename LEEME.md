@@ -19,7 +19,37 @@ Ejemplo: con el usuario `isi1000` y el repositorio `tierras`, la dirección ser�
 
 Al subir estos archivos, la app empieza en **modo local**.
 
-Si ya publicaste la versión anterior, sustituye los archivos de la web y sus carpetas con los de este ZIP. **Conserva tu `config.js` si ya configuraste Supabase**, y mantén la misma dirección de la app. Esta actualización no cambia el formato del cuaderno. Exporta una copia antes de actualizar y cierra y vuelve a abrir la app para cargar la versión nueva.
+Si ya publicaste la versión anterior, sustituye los archivos de la web y sus carpetas con los de este ZIP. **Conserva tu `config.js` si ya configuraste Supabase**, y mantén la misma dirección de la app. La app conserva las muestras anteriores y añade las visitas pendientes. Las copias nuevas usan el formato 2; también puedes importar tus copias antiguas de formato 1. No vuelvas a una versión anterior después de guardar visitas. Exporta una copia antes de actualizar y cierra y vuelve a abrir la app para cargar la versión nueva.
+
+## Novedades de esta versión · 1.6.0
+
+- **Explorar → Documentos y análisis:** buscador de estudios locales, anexos MAGNA de las hojas 759 (Piedrabuena), 760 (Daimiel), 784 (Ciudad Real) y 785 (Almagro), estudio de Cuelgaperros y recursos LUCAS.
+- **21 copias originales incluidas** en `documents`: PDF y planos de Fontanarejo, Cerro Gordo, Poblete, Higueruela, Cuelgaperros y anexos MAGNA. Abre «Copia incluida» en la ficha o en Explorar; conserva la fuente y la autoría. Los documentos de más de 6 MB siguen enlazados a la fuente original para mantener un paquete manejable.
+- Documentación de Cuelgaperros: cartografía geomorfológica a 1:25.000; no se presenta como una capa continua de composición. Documento sin modificar, autores Poblete, Beato, Marino y Ruiz, 2016, IGME / Universidad de Oviedo, CC BY-NC-ND 4.0 salvo indicación específica. Las copias IGME mantienen su autoría y atribución original. `documents/sources.json` relaciona cada copia con la URL original.
+- **LUCAS:** enlaces oficiales a textura/química, informe de minerales de arcilla y fósforo total/Olsen. No contiene datos individuales redistribuidos ni una capa de puntos LUCAS. Su incorporación pública requiere aclarar las condiciones con ESDAC. No se promete cobertura mineralógica local aún no verificada.
+- Los PDF necesitan conexión desde la web; puedes guardarlos en Archivos del iPhone para una visita sin cobertura. No se descargan automáticamente al instalar la app. Las imágenes locales de las fichas se sirven desde tu propia web.
+- Estos documentos no modifican las consultas MAGNA ni se han georreferenciado como nuevas capas. Un análisis corresponde a una muestra y fracción concretas, no a toda una unidad ni a la tierra recogida.
+
+### Detalle local incorporado en 1.5.0
+
+- **Detalle local** en las fichas de Higueruela, Poblete, Cerro Gordo–Barondillo y Fontanarejo. Abre el desplegable para consultar planos, esquemas, columnas e informes de las fuentes originales.
+- Las tarjetas de Explorar indican qué lugares tienen documentación local. Abre el lugar en el mapa y despliega **Detalle local**.
+- Enlaces a productos PNOA y LiDAR. PNOA ya se puede seleccionar como fondo en Capas; los productos LiDAR se consultan en el IGN.
+- Son documentos complementarios: no se han georreferenciado ni incorporado como capas de litología y no alteran la consulta MAGNA. Una columna describe un corte concreto; una ortofoto no identifica minerales.
+
+### Funciones de la versión 1.4.0
+
+- **Destacados en Explorar:** once fichas públicas de IELIG: Higueruela, Chorrillo, Poblete, Acebuche, Cornudilla/Cuevas Negras, Atalaya, Cerro Gordo/Barondillo, La Nava, paleocanal de Villanueva de San Carlos, tobas del Campo de Montiel y fosfatos de Fontanarejo. Cada tarjeta resume materiales y condiciones documentadas, abre la ubicación del inventario y permite guardar una visita desde la ficha. Las coordenadas de polígonos son referencias centrales, no accesos precisos.
+- **Estás aquí:** pulsa el botón de ubicación y autoriza el GPS. Verás un punto azul con halo y etiqueta, distinto de las muestras y visitas, más un círculo que representa la precisión comunicada por el dispositivo. Se actualiza mientras la app recibe posiciones, sin mover el punto que hayas seleccionado para consultar o recoger. Pulsa otra vez para centrarte. Si la posición tiene más de un minuto se indica «Última ubicación»; un error del GPS retira el marcador. La posición actual no se añade automáticamente a tu cuaderno ni se envía a otros usuarios.
+
+## Funciones de la versión 1.3.0
+
+- **IELIG:** activa «Lugares geológicos» en Capas para consultar los puntos y delimitaciones públicos del inventario IGME-CSIC. Toca un rombo o un límite para abrir su ficha. La consulta se limita a la zona visible; acerca el mapa si hay demasiados lugares.
+- **Cañada–Villar:** desde Explorar o Capas, abre «Casas de la Higueruela» (TM142). Incluye enlaces al PDF geológico, al mapa topográfico IGN 1:25.000 y a la ortofoto de accesos y tres afloramientos. El mayor detalle topográfico ayuda a localizar; el documento geológico conserva la escala MAGNA. El pin señala el centro de la delimitación, no un acceso preciso.
+- **Espacios protegidos:** capa y consulta por punto de espacios naturales protegidos, Red Natura 2000 y zonas periféricas de protección. **Cobertura: Castilla-La Mancha.** No incluye todas las figuras ni todas las restricciones. Una consulta sin coincidencias no significa «lugar no protegido»; si un servicio falla, se indica que la consulta está incompleta. La ficha TM142 también menciona un refugio de fauna.
+- **Mis visitas:** guarda cualquier punto del mapa o un lugar IELIG para visitarlo después. Añade notas, fecha prevista, referencia y estado Pendiente/Visitado. Se guarda separado de las muestras recogidas y se incluye en las copias de seguridad. Usa el mismo cuaderno local o privado por cuenta; no hace falta modificar el SQL de una instalación ya configurada.
+
+Los documentos y servicios cartográficos requieren conexión. En modo local, las visitas guardadas se pueden consultar sin conexión igual que el resto del cuaderno.
 
 ## 2. Elegir cómo se guardan los cuadernos
 
@@ -203,3 +233,31 @@ Para repetir las comprobaciones del navegador, instala Chromium con `npx playwri
 - [Antoinette Badenhorst: ensayos de porcelana y caolines](https://ceramicartsnetwork.org/ceramics-monthly/ceramics-monthly-article/Translucent-Porcelain-131594)
 - [Ceramic Arts Network: funciones de materias primas](https://ceramicartsnetwork.org/daily/article/understanding-clay-and-glaze-materials-you-dont-have-to-be-a-super-genius/)
 - [Estudio: basalto como colorante de esmaltes](https://www.rsd.tfbor.bg.ac.rs/index.php/home/article/view/95)
+
+Se han comprobado también el guardado, edición, exportación e importación de visitas, la compatibilidad con copias antiguas y su aislamiento por cuenta en PostgreSQL. Los tres servicios oficiales JCCM han devuelto imágenes PNG con CORS; las consultas reales en Las Tablas de Daimiel identifican ENP y Natura 2000. La documentación de TM142 se ha contrastado con los enlaces de su ficha oficial.
+
+- [IELIG · Casas de la Higueruela, TM142](https://info.igme.es/ielig/LIGInfo.aspx?Codigo=TM142)
+- [JCCM · servicios cartográficos oficiales](https://geoservicios.castillalamancha.es/arcgis/rest/services/Vector/)
+
+La revisión de esta versión en Chromium ha comprobado además la apertura de los tres documentos de TM142, el guardado de visitas desde IELIG, la recarga y edición del estado, la exportación con visitas y la interfaz a 320 px de anchura. Las respuestas del navegador se simulan; los servicios oficiales se han verificado por separado.
+
+Los once códigos destacados se han verificado con respuestas reales de las dos capas oficiales de IELIG; El Chorrillo y el paleocanal pertenecen a la capa de puntos, mientras que los otros destacados tienen delimitación poligonal.
+
+La revisión 1.4.0 en Chromium ha comprobado las once fichas, el movimiento simulado del GPS sin alterar el punto seleccionado, la precisión indicada y la presencia del marcador al abrir otras fichas. Se han comprobado pantallas de 320 y 393 píxeles. No se ha probado físicamente en iPhone; en Safari permite el acceso a la ubicación al pulsar el botón.
+
+
+### Fuentes de detalle local · 1.5.0
+
+- Poblete: [informe y esquemas](https://info.igme.es/ielig/documentacion/tm/tm138/documentos/d-tm138-02.pdf), [columna](https://info.igme.es/ielig/documentacion/tm/tm138/croquis/c-tm138-01.pdf), [secciones magnetoestratigráficas](https://info.igme.es/ielig/documentacion/tm/tm138/documentos/d-tm138-01.pdf) y [accesos](https://info.igme.es/ielig/documentacion/tm/tm138/mapas%20y%20ortofotos/o-tm138-03.jpg).
+- Cerro Gordo–Barondillo: [esquema geológico local](https://info.igme.es/ielig/documentacion/tm/tm146/croquis/c-tm146-01.jpg).
+- Fontanarejo: [estudio, figura 1](https://doi.org/10.1017/S001675682100087X), mapa sobre LiDAR con trabajo de campo, y [informe histórico de fosfatos](https://info.igme.es/sidPDF/067000/076/67076_0001.pdf).
+- Higueruela: se conservan los tres documentos de la revisión anterior. La mayor escala del mapa topográfico no implica nueva cartografía geológica.
+
+Los enlaces abren las fuentes originales en otra pestaña. Su consulta requiere conexión; los documentos no se descargan como parte del modo sin conexión. Revisión de enlaces: 2 de octubre de 2026. No se han verificado escalas nominales para el mapa del artículo de Fontanarejo ni para el esquema de Cerro Gordo.
+
+La revisión 1.5.0 ha pasado 26 pruebas y la comprobación de navegador en móvil y escritorio. Se verificó la apertura de Detalle local para los cuatro lugares, sus enlaces, la ausencia de desbordamiento a 320 píxeles y el mantenimiento de cuaderno, visitas y GPS. Los nueve nuevos enlaces respondieron HTTP 200; los servicios externos pueden cambiar. No se ha probado físicamente en iPhone.
+
+
+### Verificación de la revisión 1.6.0
+
+Compilación y 26 pruebas del cuaderno, copias, cuentas, mapas y visitas superadas. Comprobación de navegador en móvil y escritorio: las diez secciones de documentos, búsqueda por fósforo, enlace de copia PDF desde el subdirectorio de GitHub Pages, integridad de las 21 copias, fichas locales y ausencia de desbordamiento a 320 px. Los servicios de mapas y las cuentas se simulan en esa comprobación. Las copias documentales se descargaron de los originales y se verificaron como PDF/JPEG el 2 de octubre de 2026. No se ha probado físicamente en iPhone.

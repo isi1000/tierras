@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeSample } from '../src/lib/schema.ts';
+import { makeSample, makeVisit } from '../src/lib/schema.ts';
 
 test('PostgreSQL: cuentas, fotos privadas, revisiones e importaciones', async t => {
   const db = new PGlite(), a = '11111111-1111-4111-8111-111111111111', b = '22222222-2222-4222-8222-222222222222';
@@ -79,6 +79,12 @@ test('PostgreSQL: cuentas, fotos privadas, revisiones e importaciones', async t 
       const second = { ...first, id: crypto.randomUUID() };
       await assert.rejects(() => db.query('insert into public.tierras_samples(id,owner_id,origin_id,data) values($1,$2,$3,$4)', [second.id,a,origin,second]));
     });
+  });
+  await t.test('las visitas usan el esquema existente y siguen siendo privadas', async () => {
+    const visit = makeVisit({ name: 'Pendiente', lat: 39, lng: -3, plannedDate: '2026-10-12' });
+    await role(a, async () => { await db.query('insert into public.tierras_samples(id,owner_id,data) values($1,$2,$3)', [visit.id,a,visit]); });
+    await role(b, async () => { assert.equal((await db.query('select * from public.tierras_samples where id=$1', [visit.id])).rows.length, 0); assert.equal((await db.query('delete from public.tierras_samples where id=$1 returning id', [visit.id])).rows.length, 0); });
+    await role(a, async () => { await db.query('delete from public.tierras_samples where id=$1', [visit.id]); });
   });
   await t.test('volver a ejecutar el SQL conserva los datos y las restricciones', async () => {
     await db.exec(sql);

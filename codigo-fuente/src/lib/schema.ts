@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Geology, Sample, Firing, Photo } from './types';
+import { isVisit, type Geology, type Sample, type Firing, type Photo, type Visit, type NotebookRecord } from './types';
 
 export const idSchema = z.string().uuid();
 export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Indica una fecha válida.').refine(value => {
@@ -33,6 +33,7 @@ const firingSchema = firingInput.extend({ id: idSchema, sampleId: idSchema, crea
 const photoSchema = z.object({ id: idSchema, sampleId: idSchema, firingId: idSchema.nullable(),
   caption: z.string().max(500), createdAt: z.string().datetime(), objectKey: z.string().max(500).optional() });
 export const sampleSchema = sampleInput.omit({ geologySnapshot: true }).extend({
+  kind: z.literal('sample').optional(),
   id: idSchema, geology: geologySchema, createdAt: z.string().datetime(), updatedAt: z.string().datetime(),
   firings: z.array(firingSchema).max(500), photos: z.array(photoSchema).max(60),
 }).superRefine((sample, ctx) => {
@@ -44,6 +45,33 @@ export const sampleSchema = sampleInput.omit({ geologySnapshot: true }).extend({
   }
 });
 export function cleanSample(value: unknown): Sample { return sampleSchema.parse(value); }
+const sourceUrl = z.string().url().max(2000).refine(value => ['https:', 'http:'].includes(new URL(value).protocol), 'Usa un enlace http o https.');
+export const visitInput = z.object({
+  name: z.string().trim().min(1, 'Escribe un nombre para el lugar.').max(120),
+  lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180), notes: z.string().max(20000).default(''),
+  plannedDate: dateSchema.nullable().default(null), visitStatus: z.enum(['pending', 'visited']).default('pending'),
+  sourceUrl: sourceUrl.nullable().default(null), sourceTitle: z.string().max(200).nullable().default(null),
+  geologySnapshot: sampleInput.shape.geologySnapshot,
+});
+export const visitSchema = visitInput.omit({ geologySnapshot: true }).extend({
+  kind: z.literal('visit'), id: idSchema, geology: geologySchema, createdAt: z.string().datetime(), updatedAt: z.string().datetime(),
+  collectedDate: z.null(), description: z.string().max(10000).default(''), photos: z.tuple([]), firings: z.tuple([]),
+});
+export function cleanRecord(value: unknown): NotebookRecord {
+  return value && typeof value === 'object' && 'kind' in value && value.kind === 'visit' ? visitSchema.parse(value) : cleanSample(value);
+}
+export function makeVisit(value: unknown): Visit {
+  const data = visitInput.parse(value), now = new Date().toISOString(), snapshot = data.geologySnapshot;
+  const geology = snapshot && Math.abs(snapshot.lat - data.lat) < 1e-7 && Math.abs(snapshot.lng - data.lng) < 1e-7 ? snapshot.geology : unavailableGeology();
+  return visitSchema.parse({ ...data, kind: 'visit', id: crypto.randomUUID(), geology, createdAt: now, updatedAt: now, collectedDate: null, description: '', photos: [], firings: [] });
+}
+export function editRecord(record: NotebookRecord, route: string[], method: string, value: unknown): NotebookRecord | null {
+  if (!isVisit(record)) return editSample(record, route, method, value);
+  if (!route.length && method === 'DELETE') return null;
+  if (route.length || method !== 'PATCH') throw new Error('Operación no disponible para un lugar de visita.');
+  const changes = visitInput.pick({ name: true, notes: true, plannedDate: true, visitStatus: true, sourceUrl: true, sourceTitle: true }).partial().parse(value);
+  return visitSchema.parse({ ...record, ...changes, updatedAt: new Date().toISOString() });
+}
 export function unavailableGeology(): Geology {
   return { status: 'unavailable', sheet: null, sheetName: null, unit: null, lithology: null,
     source: 'IGME-CSIC · MAGNA 50', sourceUrl: 'https://info.igme.es/cartografiadigital/geologica/Magna50.aspx',
@@ -93,13 +121,13 @@ export function addPhoto(sample: Sample, firingId: string | null, caption = ''):
 }
 
 export type Repository = {
-  list(): Promise<Sample[]>;
-  create(sample: Sample): Promise<Sample>;
-  mutate(id: string, route: string[], method: string, value: unknown): Promise<Sample | null>;
+  list(): Promise<NotebookRecord[]>;
+  create(sample: NotebookRecord): Promise<NotebookRecord>;
+  mutate(id: string, route: string[], method: string, value: unknown): Promise<NotebookRecord | null>;
   upload(sampleId: string, firingId: string | null, blob: Blob, caption?: string): Promise<Sample>;
   exportBackup(): Promise<Backup>;
   importBackup(value: unknown): Promise<{ imported: number; skipped: number }>;
 };
-export type Backup = { app: 'Tierras'; version: 1; exportedAt: string; samples: Sample[];
+export type Backup = { app: 'Tierras'; version: 2; exportedAt: string; samples: Sample[]; visits: Visit[];
   photos: { id: string; dataUrl: string }[] };
-export type { Sample, Firing, Photo };
+export type { Sample, Firing, Photo, Visit, NotebookRecord };

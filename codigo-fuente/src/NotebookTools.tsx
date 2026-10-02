@@ -17,7 +17,7 @@ export function NotebookTools({ onImport, onSignOut, email }: {
       const url = URL.createObjectURL(new Blob([JSON.stringify(backup)], { type: 'application/json' }));
       const link = document.createElement('a'); link.href = url; link.download = `tierras-cuaderno-${new Date().toISOString().slice(0, 10)}.json`;
       document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
-      setMessage(`Copia preparada: ${backup.samples.length} muestras y ${backup.photos.length} fotos. Guárdala en Archivos o en otro lugar seguro.`);
+      setMessage(`Copia preparada: ${backup.samples.length} muestras, ${backup.visits.length} lugares de visita y ${backup.photos.length} fotos. Guárdala en Archivos o en otro lugar seguro.`);
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo exportar la copia.'); }
     finally { setBusy(''); }
   }
@@ -27,7 +27,7 @@ export function NotebookTools({ onImport, onSignOut, email }: {
     try {
       if (file.size > 100 * 1024 * 1024) throw new Error('La copia debe ocupar menos de 100 MB.');
       const result = await getRepository().importBackup(JSON.parse(await file.text()));
-      await onImport(); setMessage(`${result.imported} muestras añadidas. ${result.skipped} ya estaban en el cuaderno y se conservaron.`);
+      await onImport(); setMessage(`${result.imported} fichas añadidas. ${result.skipped} ya estaban en el cuaderno y se conservaron.`);
     } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo importar. Elige una copia exportada por Tierras.'); }
     finally { setBusy(''); }
   }

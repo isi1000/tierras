@@ -80,3 +80,20 @@
   .explore-testing>svg{width:19px}
   .ceramic-ideas{padding:15px 17px}
 }
+
+.research-library { margin: 28px 0; }
+#research-heading { display: flex; align-items: center; gap: 8px; }
+.research-groups { display: grid; gap: 12px; }
+.research-group { border: 1px solid var(--line, #dedbd5); border-radius: 12px; background: #fff; overflow: hidden; }
+.research-group > summary { cursor: pointer; padding: 18px; display: flex; align-items: center; gap: 10px; }
+.research-group > summary::before { content: '+'; color: #a64d30; font-size: 22px; }
+.research-group[open] > summary::before { content: '−'; }
+.research-group > summary small { display: block; margin-top: 5px; color: #707981; font-size: 12px; }
+.research-group-body { padding: 0 18px 18px; }
+.research-document { padding: 14px 0; border-top: 1px solid #e7e3de; }
+.research-document h3 { font-size: 16px; margin: 6px 0; }
+.research-document p { font-size: 14px; line-height: 1.6; }
+.research-library a, .research-library h3 { overflow-wrap: anywhere; }
+.research-library .resource-links { display: flex; gap: 12px; flex-wrap: wrap; }
+.local-document-item { margin-bottom: 14px; }
+.document-download { font-size: 13px; line-height: 1.5; }

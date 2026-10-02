@@ -9,8 +9,10 @@ import { chromium } from 'playwright';
 
 const root = path.resolve('dist'), output = path.resolve(process.env.TIERRAS_TEST_OUTPUT || path.join(os.tmpdir(), 'tierras-browser-qa'));
 await mkdir(output, { recursive: true });
+const featuredFixture = JSON.parse(await readFile(new URL('./fixtures/featured-ielig.json', import.meta.url), 'utf8'));
+const heritageFixture = JSON.parse(await readFile(new URL('./fixtures/ielig-tm142.json', import.meta.url), 'utf8'));
 const icon = await readFile(path.join(root, 'icon-192.png'));
-const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
+const MIME = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.pdf': 'application/pdf', '.jpg': 'image/jpeg' };
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://local');
@@ -42,6 +44,10 @@ async function fixtures(context, cloud = false, sourceState = {}) {
   });
   await context.route('**/mapas.igme.es/**', route => {
     const url = new URL(route.request().url());
+    if (url.pathname.includes('IGME_IELIG') && url.pathname.endsWith('/query')) {
+      const code = /='([^']+)'/.exec(url.searchParams.get('where') || '')?.[1], layer = url.pathname.includes('/1/') ? '1' : '0';
+      return route.fulfill({ contentType: 'application/json', body: JSON.stringify(code ? featuredFixture[code]?.[layer] || {features: []} : layer === '1' ? {features: []} : heritageFixture) });
+    }
     if (url.pathname.includes('IGME_BDMIN_Explotaciones') && url.pathname.endsWith('/query')) {
       calls.push({ source: 'bdmin', path: url.pathname, method: 'GET' });
       if (sourceState.bdminError) return route.fulfill({ status: 503, body: 'Servicio no disponible' });
@@ -50,6 +56,13 @@ async function fixtures(context, cloud = false, sourceState = {}) {
     }
     if (url.pathname.endsWith('/query')) return route.fulfill({ contentType: 'application/json', body: JSON.stringify({ features: [{ attributes: url.pathname.includes('/11/') ? { HOJA: 784, ID: 1, DLO: 'ARCILLAS Y MARGAS' } : { NUM: 784, NOMBRE: 'CIUDAD REAL' } }] }) });
     return route.fulfill({ contentType: 'image/png', body: icon });
+  });
+  await context.route('**/info.igme.es/ielig/documentacion/**', route => route.fulfill({ contentType: 'image/png', body: icon }));
+  await context.route('**/geoservicios.castillalamancha.es/**', route => {
+    const url = new URL(route.request().url());
+    calls.push({source: 'protected', path: url.pathname, dynamicLayers: url.searchParams.get('dynamicLayers')});
+    if (url.pathname.endsWith('/query')) return route.fulfill({contentType: 'application/json', body: JSON.stringify({features: [{attributes: {NOMBRE: 'Espacio de prueba', FIGURA: 'Parque', SITE_NAME: 'Espacio de prueba', SITE_CODE: 'ES123', CODIGO: 'TEST'}}]})});
+    return route.fulfill({contentType: 'image/png', body: icon});
   });
   await context.route('**/maps.isric.org/**', route => {
     const url = new URL(route.request().url()), params = url.searchParams;
@@ -137,7 +150,7 @@ try {
   assert.equal(await page.locator('.material-card').count(),1);
   assert.match(await page.locator('.material-title').innerText(), /Caolín/);
   await page.getByRole('searchbox', { name: 'Buscar un material' }).fill('');
-  assert.equal(await page.locator('.map-resource a').count(),4);
+  assert.equal(await page.locator('.map-resource a').count(),6);
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
   await page.screenshot({ path: path.join(output, 'iphone-explorar.png') });
   await page.getByRole('button', { name: 'Ir al mapa', exact: true }).click();
@@ -291,7 +304,7 @@ try {
   const second = await browser.newContext({ viewport: { width: 1280, height: 800 } }); await fixtures(second);
   const restored = await second.newPage(); await restored.goto(base + '/tierras/');
   dialog = await openTools(restored); await dialog.locator('input[type=file]').setInputFiles(backupFile);
-  await dialog.getByText(/1 muestras añadidas/).waitFor();
+  await dialog.getByText(/1 fichas añadidas/).waitFor();
   await dialog.getByRole('button', { name: 'Cerrar opciones del cuaderno' }).click();
   await openCollected(restored,'Tierra QA');
   assert.equal(await restored.locator('.photo-gallery img').count(),2);
@@ -321,6 +334,122 @@ try {
   await cloudPage.reload(); await openCollected(cloudPage,'Tierra de cuenta');
   assert.equal(await cloudPage.locator('#sample-notes').inputValue(),'Nota en la nube');
   assert.ok(calls.some(call => call.path === '/rest/v1/tierras_samples' && call.method === 'PATCH'));
+  const fieldContext = await browser.newContext({viewport: {width: 393,height: 852},isMobile: true,hasTouch: true,acceptDownloads: true});
+  await fixtures(fieldContext); const fieldPage = await fieldContext.newPage();
+  await fieldPage.goto(base + '/tierras/');
+  await fieldPage.locator('.mobile-nav').getByRole('button',{name:'Explorar',exact:true}).click();
+  await fieldPage.getByRole('button',{name:'Cañada–Villar: mapas de detalle',exact:true}).click();
+  let fieldDialog = fieldPage.locator('dialog[open]');
+  await fieldDialog.locator('.heritage-content').waitFor();
+  await fieldDialog.locator('.local-detail > summary').click();
+  assert.equal(await fieldDialog.locator('.detail-document').count(),3);
+  assert.match(await fieldDialog.locator('.detail-document').first().getAttribute('href'), /m-tm142-05.pdf$/);
+  await fieldPage.screenshot({path:path.join(output,'iphone-ielig-detalle.png')});
+  await fieldDialog.getByRole('button',{name:'Guardar este lugar para visitar',exact:true}).click();
+  fieldDialog = fieldPage.locator('dialog[open]');
+  await fieldDialog.getByLabel('Nombre del lugar',{exact:true}).fill('Visita Cañada');
+  await fieldDialog.getByLabel('Fecha prevista',{exact:true}).fill('2026-10-12');
+  await fieldDialog.getByLabel('Notas para la visita',{exact:true}).fill('Observar costras y afloramientos');
+  await fieldDialog.getByRole('button',{name:'Guardar lugar',exact:true}).click();
+  await fieldPage.locator('.visit-card h2').filter({hasText:'Visita Cañada'}).waitFor();
+  await fieldPage.reload();
+  await fieldPage.locator('.mobile-nav').getByRole('button',{name:/Mis visitas/}).click();
+  await fieldPage.locator('.visit-card').getByText('Observar costras y afloramientos',{exact:true}).waitFor();
+  await fieldPage.getByRole('button',{name:'Editar visita',exact:true}).click();
+  await fieldPage.locator('dialog[open]').getByLabel('Estado de la visita',{exact:true}).selectOption('visited');
+  await fieldPage.locator('dialog[open]').getByRole('button',{name:'Guardar lugar',exact:true}).click();
+  await fieldPage.getByRole('button',{name:'Visitados',exact:true}).click();
+  await fieldPage.locator('.visit-card').waitFor();
+  await fieldPage.setViewportSize({width:320,height:700});
+  assert.ok(await fieldPage.evaluate(()=>document.documentElement.scrollWidth <= innerWidth + 1));
+  await fieldPage.screenshot({path:path.join(output,'iphone-mis-visitas.png')});
+  await fieldPage.locator('.visit-card').getByRole('button',{name:'Ver lugar en mapa',exact:true}).click();
+  await fieldPage.locator('.protection-info.has-protection').first().waitFor();
+  await fieldPage.getByRole('button',{name:'Capas del mapa',exact:true}).click();
+  await fieldPage.getByRole('button',{name:/Espacios protegidos · CLM/}).click();
+  await fieldPage.waitForFunction(()=>document.querySelector('.field-legend'));
+  await fieldPage.waitForTimeout(500);
+  assert.ok(calls.some(c=>c.source==='protected' && c.dynamicLayers));
+  await fieldPage.getByRole('button',{name:'Cerrar capas',exact:true}).click();
+  const tools = await openTools(fieldPage), visitDownload = fieldPage.waitForEvent('download');
+  await tools.getByRole('button',{name:'Exportar cuaderno con fotos',exact:true}).click();
+  const vd = await visitDownload, vf = path.join(output,'visitas-backup.json'); await vd.saveAs(vf);
+  const vb = JSON.parse(await readFile(vf,'utf8')); assert.equal(vb.visits.length,1); assert.equal(vb.samples.length,0); assert.equal(vb.visits[0].visitStatus,'visited');
+  await tools.getByRole('button',{name:'Cerrar opciones del cuaderno'}).click();
+  await fieldPage.setViewportSize({width:393,height:852});
+  await fieldContext.grantPermissions(['geolocation']);
+  await fieldContext.setGeolocation({latitude:39.018,longitude:-3.8,accuracy:8});
+  await fieldPage.getByRole('button',{name:'Usar mi ubicación',exact:true}).click();
+  await fieldPage.locator('.user-location-marker').waitFor();
+  await fieldPage.locator('.user-location-status').getByText('Estás aquí · ±8 m',{exact:true}).waitFor();
+  await fieldPage.getByRole('button',{name:'Cerrar punto seleccionado',exact:true}).click();
+  const beforeGps = await fieldPage.locator('.user-location-marker').getAttribute('style');
+  await fieldContext.setGeolocation({latitude:39.019,longitude:-3.799,accuracy:12});
+  await fieldPage.waitForFunction(old=>document.querySelector('.user-location-marker')?.getAttribute('style')!==old,beforeGps);
+  assert.equal(await fieldPage.locator('.point-panel').count(),0);
+  await fieldPage.screenshot({path:path.join(output,'iphone-estamos-aqui.png')});
+  await fieldPage.locator('.map-canvas').click({position:{x:120,y:260}});
+  const selectedCoords = await fieldPage.locator('.point-panel .point-coordinate').innerText();
+  await fieldContext.setGeolocation({latitude:39.0195,longitude:-3.7995,accuracy:15});
+  await fieldPage.waitForFunction(()=>document.querySelector('.user-location-status')?.textContent.includes('±15 m'));
+  assert.equal(await fieldPage.locator('.point-panel .point-coordinate').innerText(),selectedCoords);
+  await fieldPage.locator('.mobile-nav').getByRole('button',{name:'Explorar',exact:true}).click();
+  assert.equal(await fieldPage.locator('.featured-site-card').count(),11);
+  await fieldPage.screenshot({path:path.join(output,'iphone-lugares-destacados.png'),fullPage:true});
+  for (const code of Object.keys(featuredFixture)) {
+    await fieldPage.locator('.featured-site-card').filter({has:fieldPage.locator('.eyebrow').filter({hasText:new RegExp('^'+code+'(?: ·|$)')})}).getByRole('button',{name:'Abrir en el mapa',exact:true}).click();
+    await fieldPage.locator('dialog[open] .heritage-content>.eyebrow').filter({hasText:code}).waitFor();
+    const detailCount = {TM142:3,TM138:4,TM146:1,CI240:2}[code];
+    if (detailCount) {
+      const local = fieldPage.locator('dialog[open] .local-detail');
+      await local.locator(':scope > summary').click();
+      assert.equal(await local.locator('.detail-document').count(),detailCount);
+      for (const link of await local.locator('.detail-document').all()) {
+        assert.match(await link.getAttribute('href'),/^https:\/\//);
+        assert.equal(await link.getAttribute('target'),'_blank');
+        assert.equal(await link.isVisible(),true);
+      }
+      await local.locator('.terrain-resources > summary').click();
+      assert.equal(await local.locator('.terrain-resource').count(),2);
+      await fieldPage.setViewportSize({width:320,height:700});
+      assert.ok(await fieldPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+      if (code === 'TM138') await fieldPage.screenshot({path:path.join(output,'iphone-detalle-poblete.png')});
+      await fieldPage.setViewportSize({width:393,height:852});
+    } else assert.equal(await fieldPage.locator('dialog[open] .local-detail').count(),0);
+    await fieldPage.locator('dialog[open]').getByRole('button',{name:'Cerrar',exact:true}).click();
+    assert.equal(await fieldPage.locator('.user-location-marker').count(),1);
+    await fieldPage.locator('.mobile-nav').getByRole('button',{name:'Explorar',exact:true}).click();
+  }
+  await fieldPage.setViewportSize({width:320,height:700});
+  assert.ok(await fieldPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  const research = fieldPage.locator('.research-library');
+  assert.equal(await research.locator('.research-group').count(),10);
+  await research.getByRole('searchbox',{name:'Buscar documentos'}).fill('fosforo');
+  assert.equal(await research.locator('.research-group').count(),1);
+  await research.locator('.research-group > summary').click();
+  assert.equal(await research.locator('.research-document').count(),3);
+  assert.equal(await research.locator('.document-download').count(),0);
+  assert.match(await research.innerText(),/no se publican muestras individuales/);
+  await research.getByRole('searchbox',{name:'Buscar documentos'}).fill('');
+  const magna = research.locator('.research-group').filter({hasText:'Ciudad Real · MAGNA 784'});
+  await magna.locator(':scope > summary').click();
+  assert.equal(await magna.locator('.research-document').count(),6);
+  const copyLink = magna.locator('.document-download').first();
+  const copyUrl = new URL(await copyLink.getAttribute('href'),fieldPage.url());
+  assert.ok(copyUrl.pathname.startsWith('/tierras/documents/'));
+  const response = await fieldPage.request.get(copyUrl.href);
+  assert.equal(response.status(),200);
+  assert.equal((await response.body()).subarray(0,4).toString(),'%PDF');
+  const documentManifest = JSON.parse(await readFile(path.join(root,'documents/sources.json'),'utf8'));
+  assert.equal(Object.keys(documentManifest).length,21);
+  for (const file of Object.values(documentManifest)) {
+    const data = await readFile(path.join(root,file.path));
+    assert.equal(data.length,file.bytes);
+    assert.ok(file.path.endsWith('.pdf') ? data.subarray(0,4).toString()==='%PDF' : data[0]===255 && data[1]===216);
+  }
+  assert.ok(await fieldPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  await research.scrollIntoViewIfNeeded();
+  await fieldPage.screenshot({path:path.join(output,'iphone-documentos-analisis.png')});
   assert.equal(pageErrors.length,0,JSON.stringify(pageErrors));
   assert.equal(boundaryErrors.length,0,JSON.stringify(boundaryErrors));
   console.log('Navegador: BDMIN, filtros y fichas; SoilGrids, fracciones, profundidades, porcentajes, intervalos y errores; explorar, ortofotos, móvil, muestras, fotos, notas, copias, aislamiento, modo sin conexión y Supabase comprobados.');

@@ -19,9 +19,9 @@ export const BDMIN_FILTERS = [
   { id: 'silica', label: 'Sílice y arenas', pattern: /cuarz|cuarc|silic|arena/ },
 ] as const;
 export type BdminFilter = typeof BDMIN_FILTERS[number]['id'];
-export type MapSources = { bdmin: boolean; bdminFilter: BdminFilter; soil: boolean; soilProperty: SoilProperty; soilDepth: SoilDepth; soilOpacity: number };
-export const DEFAULT_MAP_SOURCES: MapSources = { bdmin: true, bdminFilter: 'ceramic', soil: false, soilProperty: 'clay', soilDepth: '15-30cm', soilOpacity: .65 };
-export type MapSourceAction = 'bdmin' | 'soil' | 'pnoa';
+export type MapSources = { bdmin: boolean; bdminFilter: BdminFilter; soil: boolean; soilProperty: SoilProperty; soilDepth: SoilDepth; soilOpacity: number; ielig: boolean; protected: boolean; protectedOpacity: number };
+export const DEFAULT_MAP_SOURCES: MapSources = { bdmin: true, bdminFilter: 'ceramic', soil: false, soilProperty: 'clay', soilDepth: '15-30cm', soilOpacity: .65, ielig: false, protected: false, protectedOpacity: .8 };
+export type MapSourceAction = 'bdmin' | 'soil' | 'pnoa' | 'ielig' | 'protected';
 
 export const BDMIN_SERVICE = 'https://mapas.igme.es/gis/rest/services/BasesDatos/IGME_BDMIN_Explotaciones/MapServer';
 export const soilService = (property: SoilProperty) => `https://maps.isric.org/mapserv/${property}`;
@@ -59,7 +59,7 @@ export function parseSoilCollections(body: string): unknown {
     throw new Error('Respuesta de SoilGrids incompleta o no válida.');
   return { type: 'FeatureCollection', features: documents.flatMap(document => document.features!) };
 }
-async function requestJson(url: string, signal?: AbortSignal, soil = false): Promise<unknown> {
+export async function requestJson(url: string, signal?: AbortSignal, soil = false): Promise<unknown> {
   const controller = new AbortController();
   const abort = () => controller.abort();
   if (signal?.aborted) throw new DOMException('Consulta cancelada', 'AbortError');

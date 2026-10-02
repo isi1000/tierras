@@ -1,7 +1,11 @@
+import ResearchDocuments from './ResearchDocuments';
 import { useEffect, useState } from 'react';
 import { Compass, ExternalLink, FlaskConical, Layers, MapPin, Search, Satellite } from 'lucide-react';
 import { GOALS, MAP_RESOURCES, MATERIALS, matchingMaterials, type CeramicGoal, type MaterialGuide } from './lib/materials';
 import type { Geology, Point } from './lib/types';
+import { FEATURED_SITES } from './lib/featuredSites';
+import { ligUrl } from './lib/fieldSites';
+import { localDetail } from './lib/localDetails';
 import type { MapSourceAction } from './lib/mapSources';
 
 export function CeramicIdeas({ lithology }: { lithology: string | null }) {
@@ -35,11 +39,14 @@ function MaterialCard({ material }: { material: MaterialGuide }) {
   </article>;
 }
 
-export default function MaterialExplorer({ point, geology, loading, onMap }: {
+export default function MaterialExplorer({ point, geology, loading, onMap, onHigueruela, detailBusy, onFeaturedSite }: {
   point: Point | null;
   geology: Geology | null;
   loading: boolean;
   onMap: (source?: MapSourceAction) => void;
+  onHigueruela: () => void;
+  detailBusy: boolean;
+  onFeaturedSite: (code: string) => void;
 }) {
   const [goal, setGoal] = useState<CeramicGoal>('all');
   const [query, setQuery] = useState('');
@@ -83,13 +90,25 @@ export default function MaterialExplorer({ point, geology, loading, onMap }: {
       {!visible.length && <div className="material-empty"><p>No hay materiales con esa búsqueda y ese uso.</p><button className="text-button" onClick={() => { setGoal('all'); setQuery(''); }}>Ver todos los materiales</button></div>}
     </section>
 
+    <section className="featured-sites" aria-labelledby="featured-sites-heading">
+      <div className="explore-section-head"><h2 id="featured-sites-heading">Lugares geológicos destacados</h2><span className="meta">Ciudad Real · IELIG</span></div>
+      <p className="meta">Materiales documentados para investigar y observar. La ficha no garantiza aptitud cerámica ni autoriza la recogida.</p>
+      <div className="featured-sites-grid">{FEATURED_SITES.map(site => <article className="featured-site-card" key={site.code}>
+        <span className="eyebrow">{site.code}{site.priority ? ' · ' + site.priority : ''}</span><h3>{site.name}</h3><p className="meta">{site.area}</p><p>{site.material}</p><p className="featured-site-note">{site.note}</p>
+        {localDetail(site.code) && <span className="local-detail-badge">Detalle local disponible en la ficha</span>}
+        <div className="field-actions"><button className="button secondary" disabled={detailBusy} onClick={() => onFeaturedSite(site.code)}><MapPin size={15} />Abrir en el mapa</button><a className="text-button" href={ligUrl(site.code)} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} />Ficha oficial</a></div>
+      </article>)}</div>
+    </section>
+
+    <ResearchDocuments onFeaturedSite={onFeaturedSite} busy={detailBusy} />
+
     <section className="explore-maps" aria-labelledby="explore-maps-heading">
       <div className="explore-section-head"><h2 id="explore-maps-heading">Mapas que complementan MAGNA</h2></div>
       <div className="resource-grid">{MAP_RESOURCES.map(resource => <article key={resource.id} className="map-resource">
         <span className="eyebrow">{resource.publisher}</span><h3>{resource.name}</h3>
         <p>{resource.useful}</p><p className="resource-limitation">{resource.limitation}</p>
         <div className="resource-links"><a href={resource.url} target="_blank" rel="noopener noreferrer" className="text-button"><ExternalLink size={15} />{resource.link}</a>
-          {resource.id === 'bdmin' && <button className="text-button" onClick={() => onMap('bdmin')}><MapPin size={16} />Ver BDMIN en Tierras</button>}{resource.id === 'soilgrids' && <button className="text-button" onClick={() => onMap('soil')}><Layers size={16} />Ver SoilGrids en Tierras</button>}{resource.id === 'pnoa' && <button className="text-button" onClick={() => onMap('pnoa')}><Satellite size={16} />Ver ortofotos en Tierras</button>}</div>
+          {resource.id === 'ielig' && <><button className="text-button" onClick={() => onMap('ielig')}>Ver IELIG en Tierras</button><button className="text-button" disabled={detailBusy} onClick={onHigueruela}>Cañada–Villar: mapas de detalle</button></>}{resource.id === 'protected' && <button className="text-button" onClick={() => onMap('protected')}>Ver espacios protegidos en Tierras</button>}{resource.id === 'bdmin' && <button className="text-button" onClick={() => onMap('bdmin')}><MapPin size={16} />Ver BDMIN en Tierras</button>}{resource.id === 'soilgrids' && <button className="text-button" onClick={() => onMap('soil')}><Layers size={16} />Ver SoilGrids en Tierras</button>}{resource.id === 'pnoa' && <button className="text-button" onClick={() => onMap('pnoa')}><Satellite size={16} />Ver ortofotos en Tierras</button>}</div>
       </article>)}</div>
     </section>
 

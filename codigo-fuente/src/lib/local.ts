@@ -1,4 +1,5 @@
-import { addPhoto, cleanSample, editSample, idSchema, validateImage, type Repository, type Sample, type Backup } from './schema';
+import { isVisit } from './types';
+import { addPhoto, cleanRecord, editRecord, idSchema, validateImage, type Repository, type Sample, type NotebookRecord, type Backup } from './schema';
 import { decodeBackup, encodeBlob } from './backup';
 
 type StoredPhoto = { id: string; sampleId: string; blob: Blob };
@@ -28,8 +29,8 @@ export class LocalRepository implements Repository {
     const db = await this.open();
     return requested(db.transaction(store).objectStore(store).getAll()) as Promise<T[]>;
   }
-  private async hydrate(sample: Sample): Promise<Sample> {
-    const next = cleanSample(sample), db = await this.open();
+  private async hydrate<T extends NotebookRecord>(sample: T): Promise<T> {
+    const next = cleanRecord(sample) as T, db = await this.open();
     for (const photo of next.photos) {
       if (!this.urls.has(photo.id)) {
         const record = await requested(db.transaction('photos').objectStore('photos').get(photo.id)) as StoredPhoto | undefined;
@@ -39,13 +40,13 @@ export class LocalRepository implements Repository {
     }
     return next;
   }
-  async list(): Promise<Sample[]> {
-    const samples = await this.all<Sample>('samples');
+  async list(): Promise<NotebookRecord[]> {
+    const samples = await this.all<NotebookRecord>('samples');
     samples.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return Promise.all(samples.map(sample => this.hydrate(sample)));
   }
-  async create(sample: Sample): Promise<Sample> {
-    const data = cleanSample(sample), db = await this.open();
+  async create<T extends NotebookRecord>(sample: T): Promise<T> {
+    const data = cleanRecord(sample) as T, db = await this.open();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction('samples', 'readwrite');
       tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('No se pudo guardar.'));
@@ -53,20 +54,20 @@ export class LocalRepository implements Repository {
     });
     return this.hydrate(data);
   }
-  private async change(id: string, change: (sample: Sample, tx: IDBTransaction) => Sample | null): Promise<Sample | null> {
+  private async change(id: string, change: (sample: NotebookRecord, tx: IDBTransaction) => NotebookRecord | null): Promise<NotebookRecord | null> {
     idSchema.parse(id); const db = await this.open();
     const deletedPhotoIds: string[] = [];
-    const result = await new Promise<Sample | null>((resolve, reject) => {
+    const result = await new Promise<NotebookRecord | null>((resolve, reject) => {
       const tx = db.transaction(['samples', 'photos'], 'readwrite'), store = tx.objectStore('samples');
-      let result: Sample | null = null, error: unknown;
+      let result: NotebookRecord | null = null, error: unknown;
       tx.oncomplete = () => resolve(result); tx.onerror = tx.onabort = () => reject(error || tx.error || new Error('No se pudo guardar.'));
       const read = store.get(id);
       read.onsuccess = () => {
         try {
           if (!read.result) throw new Error('No se encontró esa muestra.');
-          const previous = cleanSample(read.result);
+          const previous = cleanRecord(read.result);
           result = change(previous, tx);
-          if (result) store.put(cleanSample(result));
+          if (result) store.put(cleanRecord(result));
           else {
             deletedPhotoIds.push(...previous.photos.map(photo => photo.id));
             store.delete(id);
@@ -84,23 +85,25 @@ export class LocalRepository implements Repository {
     }
     return this.hydrate(result);
   }
-  async mutate(id: string, route: string[], method: string, value: unknown): Promise<Sample | null> {
-    return this.change(id, sample => editSample(sample, route, method, value));
+  async mutate(id: string, route: string[], method: string, value: unknown): Promise<NotebookRecord | null> {
+    return this.change(id, sample => editRecord(sample, route, method, value));
   }
   async upload(sampleId: string, firingId: string | null, blob: Blob, caption = ''): Promise<Sample> {
     await validateImage(blob);
     const result = await this.change(sampleId, (sample, tx) => {
+      if (isVisit(sample)) throw new Error('Registra una muestra recogida antes de añadir fotos de cocción.');
       const photo = addPhoto(sample, firingId, caption);
       tx.objectStore('photos').add({ id: photo.id, sampleId, blob });
       sample.photos.push(photo); sample.updatedAt = new Date().toISOString();
-      return cleanSample(sample);
+      return cleanRecord(sample);
     });
-    return result!;
+    return result as Sample;
   }
   async exportBackup(): Promise<Backup> {
-    const [samples, photos] = await Promise.all([this.all<Sample>('samples'), this.all<StoredPhoto>('photos')]);
+    const [records, photos] = await Promise.all([this.all<NotebookRecord>('samples'), this.all<StoredPhoto>('photos')]);
+    const cleaned = records.map(cleanRecord), samples = cleaned.filter((record): record is Sample => !isVisit(record)), visits = cleaned.filter(isVisit);
     const referenced = new Set(samples.flatMap(s => s.photos.map(p => p.id)));
-    return { app: 'Tierras', version: 1, exportedAt: new Date().toISOString(), samples: samples.map(cleanSample),
+    return { app: 'Tierras', version: 2, exportedAt: new Date().toISOString(), samples, visits,
       photos: await Promise.all(photos.filter(p => referenced.has(p.id)).map(async photo => ({ id: photo.id, dataUrl: await encodeBlob(photo.blob) }))) };
   }
   async importBackup(value: unknown): Promise<{ imported: number; skipped: number }> {
@@ -110,12 +113,12 @@ export class LocalRepository implements Repository {
       const tx = db.transaction(['samples', 'photos'], 'readwrite'), samples = tx.objectStore('samples'), photos = tx.objectStore('photos');
       let imported = 0, skipped = 0, error: unknown;
       tx.oncomplete = () => resolve({ imported, skipped }); tx.onerror = tx.onabort = () => reject(error || tx.error);
-      for (const sample of backup.samples) {
+      for (const sample of [...backup.samples, ...backup.visits]) {
         const request = samples.get(sample.id);
         request.onsuccess = () => {
           try {
             if (request.result) { skipped++; return; }
-            samples.add(cleanSample(sample));
+            samples.add(cleanRecord(sample));
             for (const photo of sample.photos) photos.add({ id: photo.id, sampleId: sample.id, blob: blobs.get(photo.id)! });
             imported++;
           } catch (e) { error = e; tx.abort(); }

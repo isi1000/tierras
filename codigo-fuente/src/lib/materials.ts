@@ -95,6 +95,18 @@ export function matchingMaterials(lithology: string | null): MaterialGuide[] {
 
 export const MAP_RESOURCES = [
   {
+    id: 'ielig', name: 'Lugares de interés geológico · IELIG', publisher: 'IGME-CSIC',
+    useful: 'Delimitaciones, fichas, fotografías e informes para planear una visita. Incluye los mapas y ortofotos de Casas de la Higueruela, en la zona Cañada–Villar.',
+    limitation: 'El detalle de un afloramiento o de una ortofoto no equivale a una nueva capa litológica de mayor resolución. Se muestran localizaciones públicas.',
+    url: 'https://info.igme.es/ielig/', link: 'Abrir IELIG',
+  },
+  {
+    id: 'protected', name: 'Espacios protegidos · Castilla-La Mancha', publisher: 'JCCM',
+    useful: 'Espacios naturales protegidos, Red Natura 2000 y zonas periféricas de protección para revisar una visita.',
+    limitation: 'Cobertura regional. La ausencia de coincidencias en estas tres capas no descarta otras restricciones ni autoriza la recogida.',
+    url: 'https://geoservicios.castillalamancha.es/arcgis/rest/services/Vector/', link: 'Consultar las fuentes oficiales',
+  },
+  {
     id: 'bdmin', name: 'Recursos minerales · BDMIN', publisher: 'IGME-CSIC',
     useful: 'Indicios y explotaciones de arcilla, caolín, feldespato y otras materias primas. Es el primer complemento que consultaría para decidir una zona.',
     limitation: 'Integrado en Tierras con puntos, filtros por materia prima y consulta de fichas. Comprueba la localización, la actualidad y el permiso de acceso y recogida.',

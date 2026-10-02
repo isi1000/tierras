@@ -1,7 +1,7 @@
 
 const PREFIX = 'tierras-shell-' + self.registration.scope + '-';
-const CACHE = PREFIX + "cb98d3acb4d2f0a6";
-const FILES = ["assets/index-B5MY4q8r.js","assets/index-B5WjLMbH.css","assets/leaflet-src-7ah4FPQk.js","config.js","favicon.svg","icon-192.png","icon-512.png","index.html","manifest.webmanifest"];
+const CACHE = PREFIX + "c720581f796b4228";
+const FILES = ["assets/index-Cc52WwXQ.css","assets/index-Pko-hDOm.js","assets/leaflet-src-7ah4FPQk.js","config.js","favicon.svg","icon-192.png","icon-512.png","index.html","manifest.webmanifest"];
 const URLS = FILES.map(file => new URL(file, self.registration.scope).href);
 const ALLOWED = new Set(URLS);
 self.addEventListener('install', event => {

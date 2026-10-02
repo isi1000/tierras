@@ -2,16 +2,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { Layers, LocateFixed, Plus, Minus, Check, X, MapPin, Satellite } from 'lucide-react';
 import type * as Leaflet from 'leaflet';
-import type { Point, Sample } from '@/lib/types';
+import type { Point, Sample, Visit } from '@/lib/types';
 import MapSourceControls from './MapSourceControls';
 import { useMapSources } from './useMapSources';
+import { useFieldLayers } from './useFieldLayers';
+import FieldLayerControls from './FieldLayerControls';
+import type { LivePosition } from './useLiveLocation';
+import type { HeritageSite } from './lib/fieldSites';
 import { SOIL_PROPERTIES, depthLabel, type MapSources } from './lib/mapSources';
-type Props = { samples: Sample[]; point: Point | null; onPoint: (point: Point) => void; onSample: (id: string) => void; locateTarget: Point | null; onLocate: () => void; locating: boolean; baseLayer: 'osm' | 'pnoa'; onBaseLayer: (layer: 'osm' | 'pnoa') => void; sources: MapSources; onSources: (sources: MapSources) => void };
-export default function MapView({ samples, point, onPoint, onSample, locateTarget, onLocate, locating, baseLayer, onBaseLayer, sources, onSources }: Props) {
+type Props = { userPosition: LivePosition | null; visits: Visit[]; onVisit: (id: string) => void; onHeritage: (site: HeritageSite) => void; onHigueruela: () => void; detailBusy: boolean; samples: Sample[]; point: Point | null; onPoint: (point: Point) => void; onSample: (id: string) => void; locateTarget: Point | null; onLocate: () => void; locating: boolean; baseLayer: 'osm' | 'pnoa'; onBaseLayer: (layer: 'osm' | 'pnoa') => void; sources: MapSources; onSources: (sources: MapSources) => void };
+export default function MapView({ userPosition, visits, onVisit, onHeritage, onHigueruela, detailBusy, samples, point, onPoint, onSample, locateTarget, onLocate, locating, baseLayer, onBaseLayer, sources, onSources }: Props) {
   const el = useRef<HTMLDivElement>(null), map = useRef<Leaflet.Map | null>(null), library = useRef<typeof Leaflet | null>(null), markers = useRef<Leaflet.LayerGroup | null>(null), selection = useRef<Leaflet.CircleMarker | null>(null), geology = useRef<Leaflet.TileLayer.WMS | null>(null), basemap = useRef<Leaflet.TileLayer | null>(null);
-  const callbacks = useRef({ onPoint, onSample }); callbacks.current = { onPoint, onSample };
+  const callbacks = useRef({ onPoint, onSample, onVisit }); callbacks.current = { onPoint, onSample, onVisit };
   const [ready, setReady] = useState(false), [layersOpen, setLayersOpen] = useState(false), [magna, setMagna] = useState(true), [opacity, setOpacity] = useState(.7), [tileError, setTileError] = useState(false), [baseError, setBaseError] = useState(false), [mapError, setMapError] = useState('');
   const integrated = useMapSources({ map: map.current, library: library.current, ready, sources, onPoint });
+  const fieldLayers = useFieldLayers({ map: map.current, library: library.current, ready, sources, onHeritage });
   useEffect(() => { if (sources.soil) setMagna(false); }, [sources.soil]);
   useEffect(() => {
     let disposed = false;
@@ -56,7 +61,13 @@ export default function MapView({ samples, point, onPoint, onSample, locateTarge
       pin.bindTooltip(label, { direction: 'top', offset: [0, -30] });
       pin.on('click', () => callbacks.current.onSample(sample.id));
     }
-  }, [samples, ready]);
+    for (const visit of visits) {
+      const icon = L.divIcon({ className: 'visit-marker-wrap', html: `<span class="visit-marker ${visit.visitStatus === 'visited' ? 'visited' : ''}"></span>`, iconSize: [30, 30], iconAnchor: [15, 15] });
+      const pin = L.marker([visit.lat, visit.lng], { icon, title: `${visit.visitStatus === 'pending' ? 'Pendiente' : 'Visitado'} · ${visit.name}`, keyboard: true }).addTo(markers.current);
+      const label = document.createElement('span'); label.textContent = visit.name; pin.bindTooltip(label);
+      pin.on('click', () => callbacks.current.onVisit(visit.id));
+    }
+  }, [samples, visits, ready]);
   useEffect(() => {
     if (!ready || !map.current || !library.current) return;
     selection.current?.remove(); selection.current = null;
@@ -74,10 +85,21 @@ export default function MapView({ samples, point, onPoint, onSample, locateTarge
     });
     return () => cancelAnimationFrame(frame);
   }, [locateTarget, ready]);
+  const [locationClock, setLocationClock] = useState(Date.now());
+  useEffect(() => { if (!userPosition) return; setLocationClock(Date.now()); const timer = setInterval(() => setLocationClock(Date.now()), 30000); return () => clearInterval(timer); }, [userPosition]);
+  const locationAge = userPosition ? Math.max(0, locationClock - userPosition.timestamp) : 0;
+  useEffect(() => {
+    if (!userPosition || !ready || !map.current || !library.current) return;
+    const L = library.current, instance = map.current;
+    const radius = L.circle([userPosition.lat, userPosition.lng], { radius: userPosition.accuracy, color: '#1674df', weight: 1, fillColor: '#1674df', fillOpacity: .1, interactive: false }).addTo(instance);
+    const marker = L.marker([userPosition.lat, userPosition.lng], { title: 'Estás aquí · ubicación GPS', alt: 'Estás aquí · ubicación GPS', zIndexOffset: 1500, keyboard: false, interactive: false, icon: L.divIcon({ className: 'user-location-marker', html: '<span class="user-location-halo"></span><span class="user-location-dot"></span>', iconSize: [44, 44], iconAnchor: [22, 22] }) }).addTo(instance);
+    marker.bindTooltip(locationAge > 60000 ? 'Última ubicación' : 'Estás aquí', { permanent: true, direction: 'top', offset: [0, -22], className: 'user-location-tooltip' });
+    return () => { radius.remove(); marker.remove(); };
+  }, [userPosition, ready, locationAge]);
   useEffect(() => { if (map.current && geology.current) { if (magna) geology.current.addTo(map.current); else geology.current.remove(); } }, [magna, ready]);
   useEffect(() => { geology.current?.setOpacity(opacity); }, [opacity, ready]);
   return <div className="map-canvas-wrap">
-    <div ref={el} className="map-canvas" aria-label="Mapa con MAGNA, materias primas BDMIN y suelo SoilGrids. Toca un punto para consultarlo." />
+    <div ref={el} className="map-canvas" aria-label="Mapa con MAGNA, BDMIN, SoilGrids, IELIG, espacios protegidos y lugares de visita. Toca un punto para consultarlo." />
     {!ready && <div className="map-loading">{mapError || 'Abriendo el mapa geológico…'}</div>}
     <div className="map-topline"><span className="map-source">{magna || sources.soil ? <Layers size={15} /> : baseLayer === 'pnoa' ? <Satellite size={15} /> : <MapPin size={15} />}{sources.soil ? `${SOIL_PROPERTIES.find(property => property.id === sources.soilProperty)?.label} · ${depthLabel(sources.soilDepth)}` : magna ? 'MAGNA 50 · Litología' : baseLayer === 'pnoa' ? 'Ortofotos PNOA · IGN' : 'OpenStreetMap'}{sources.soil ? <span className="map-scale-label">250 m</span> : magna && <span className="map-scale-label">1:50.000</span>}</span></div>
     {sources.bdmin && <div className="bdmin-map-status" role="status"><span className="bdmin-dot" />{integrated.bdminBusy ? 'Consultando BDMIN…' : integrated.zoomHint ? 'BDMIN · acerca el mapa' : integrated.bdminError ? 'BDMIN no disponible' : `BDMIN · ${integrated.visible.length} ubicaciones`}</div>}
@@ -86,9 +108,11 @@ export default function MapView({ samples, point, onPoint, onSample, locateTarge
       <button className="map-control" aria-label="Usar mi ubicación" onClick={onLocate} disabled={locating}><LocateFixed size={20} className={locating ? 'spin' : ''} /></button>
       <div className="zoom-group"><button className="map-control" aria-label="Acercar mapa" onClick={() => map.current?.zoomIn()}><Plus size={20} /></button><button className="map-control" aria-label="Alejar mapa" onClick={() => map.current?.zoomOut()}><Minus size={20} /></button></div>
     </div>
-    {layersOpen && <div className="layers-panel"><div className="small-heading">Capas del mapa<button className="icon-button" aria-label="Cerrar capas" onClick={() => setLayersOpen(false)}><X size={17} /></button></div><button className="layer-toggle" aria-pressed={magna} onClick={() => { if (!magna && sources.soil) onSources({ ...sources, soil: false }); setMagna(!magna); }}><span className={'checkbox ' + (magna ? 'checked' : '')}>{magna && <Check size={14} />}</span><span><b>Litología MAGNA</b><small>Cartografía oficial del IGME-CSIC</small></span></button><label className="opacity-label">Opacidad de MAGNA<input type="range" min=".15" max="1" step=".05" value={opacity} onChange={e => setOpacity(Number(e.target.value))} /></label><MapSourceControls sources={sources} onChange={onSources} state={{ ...integrated, openBdmin: entry => { setLayersOpen(false); integrated.openBdmin(entry); } }} /><div className="base-layer-options" role="group" aria-label="Elegir mapa base"><button className="layer-toggle" aria-pressed={baseLayer === 'osm'} onClick={() => onBaseLayer('osm')}><span className={'checkbox ' + (baseLayer === 'osm' ? 'checked' : '')}>{baseLayer === 'osm' && <Check size={14} />}</span><span><b>Caminos · OpenStreetMap</b></span></button><button className="layer-toggle" aria-pressed={baseLayer === 'pnoa'} onClick={() => onBaseLayer('pnoa')}><span className={'checkbox ' + (baseLayer === 'pnoa' ? 'checked' : '')}>{baseLayer === 'pnoa' && <Check size={14} />}</span><span><b>Ortofotos · PNOA</b><small>Imágenes aéreas del IGN / CNIG</small></span></button></div><p className="meta">MAGNA y SoilGrids se muestran por separado para distinguir sus colores. BDMIN puede verse sobre ambas capas.</p></div>}
+    {layersOpen && <div className="layers-panel"><div className="small-heading">Capas del mapa<button className="icon-button" aria-label="Cerrar capas" onClick={() => setLayersOpen(false)}><X size={17} /></button></div><button className="layer-toggle" aria-pressed={magna} onClick={() => { if (!magna && sources.soil) onSources({ ...sources, soil: false }); setMagna(!magna); }}><span className={'checkbox ' + (magna ? 'checked' : '')}>{magna && <Check size={14} />}</span><span><b>Litología MAGNA</b><small>Cartografía oficial del IGME-CSIC</small></span></button><label className="opacity-label">Opacidad de MAGNA<input type="range" min=".15" max="1" step=".05" value={opacity} onChange={e => setOpacity(Number(e.target.value))} /></label><MapSourceControls sources={sources} onChange={onSources} state={{ ...integrated, openBdmin: entry => { setLayersOpen(false); integrated.openBdmin(entry); } }} /><FieldLayerControls sources={sources} onChange={onSources} state={{ ...fieldLayers, open: site => { setLayersOpen(false); fieldLayers.open(site); } }} onHigueruela={() => { setLayersOpen(false); onHigueruela(); }} detailBusy={detailBusy} /><div className="base-layer-options" role="group" aria-label="Elegir mapa base"><button className="layer-toggle" aria-pressed={baseLayer === 'osm'} onClick={() => onBaseLayer('osm')}><span className={'checkbox ' + (baseLayer === 'osm' ? 'checked' : '')}>{baseLayer === 'osm' && <Check size={14} />}</span><span><b>Caminos · OpenStreetMap</b></span></button><button className="layer-toggle" aria-pressed={baseLayer === 'pnoa'} onClick={() => onBaseLayer('pnoa')}><span className={'checkbox ' + (baseLayer === 'pnoa' ? 'checked' : '')}>{baseLayer === 'pnoa' && <Check size={14} />}</span><span><b>Ortofotos · PNOA</b><small>Imágenes aéreas del IGN / CNIG</small></span></button></div><p className="meta">MAGNA y SoilGrids se muestran por separado para distinguir sus colores. BDMIN puede verse sobre ambas capas.</p></div>}
     {(tileError && magna || baseError) && <div className="map-service-error">{baseError ? (baseLayer === 'pnoa' ? 'Las ortofotos no están cargando. Cambia a OpenStreetMap desde Capas.' : 'El mapa base no está cargando. Prueba las ortofotos desde Capas.') : 'MAGNA no está cargando. Puedes seguir viendo el mapa base y guardar ubicaciones.'}</div>}
     {sources.soil && integrated.soilError && <div className="soil-map-error" role="status">SoilGrids no está cargando. Puedes seguir usando el mapa y consultar otros servicios.</div>}
+    {sources.protected && fieldLayers.protectionError && <div className="field-map-error" role="status">La cartografía de protección no está completa. Consulta los datos del punto y reintenta la capa desde Capas.</div>}
+    {userPosition && <div className={'user-location-status ' + (sources.bdmin ? 'with-bdmin' : '')} role="status"><span />{locationAge > 60000 ? `Última ubicación · hace ${Math.max(1, Math.floor(locationAge / 60000))} min` : 'Estás aquí'} · ±{Math.round(userPosition.accuracy)} m</div>}
     <div className="map-region"><MapPin size={13} /> Ciudad Real · Daimiel</div>
   </div>;
 }
